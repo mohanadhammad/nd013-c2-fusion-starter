@@ -29,6 +29,8 @@ from tools.objdet_models.resnet.utils.evaluation_utils import decode, post_proce
 from tools.objdet_models.darknet.models.darknet2pytorch import Darknet as darknet
 from tools.objdet_models.darknet.utils.evaluation_utils import post_processing_v2
 
+from tools.objdet_models.resnet.utils.evaluation_utils import decode, post_processing
+from tools.objdet_models.resnet.utils.torch_utils import _sigmoid
 
 # load model-related parameters into an edict
 def load_configs_model(model_name='darknet', configs=None):
@@ -61,6 +63,43 @@ def load_configs_model(model_name='darknet', configs=None):
         ####### ID_S3_EX1-3 START #######     
         #######
         print("student task ID_S3_EX1-3")
+        
+        configs.model_path = os.path.join(parent_path, 'tools', 'objdet_models', 'resnet')
+        configs.pretrained_filename = os.path.join(configs.model_path, 'pretrained', 'fpn_resnet_18_epoch_300.pth')
+        configs.arch = 'fpn_resnet_18'
+        configs.batch_size = 1
+        configs.no_cuda = False
+        configs.gpu_idx = 0
+        configs.num_samples = None
+        configs.distributed = False  # For testing on 1 GPU only
+        configs.input_size = (608, 608)
+        configs.hm_size = (152, 152)
+        configs.num_workers = 1
+        configs.pin_memory = True
+        configs.imagenet_pretrained = False
+        configs.head_conv = 64
+        configs.K = 50
+        configs.down_ratio = 4
+        configs.peak_thresh = 0.2
+        configs.num_layers = 18 # resnet_18
+        configs.conf_thresh = 0.5
+        configs.save_test_output = False
+        configs.output_format = 'image'
+        configs.output_video_fn = 'out_fpn_resnet'
+        
+        configs.num_classes = 3
+        configs.num_center_offset = 2
+        configs.num_direction = 2  # sin, cos
+        configs.num_z = 1
+        configs.num_dim = 3
+
+        configs.heads = {
+            'hm_cen': configs.num_classes,
+            'cen_offset': configs.num_center_offset,
+            'direction': configs.num_direction,
+            'z_coor': configs.num_z,
+            'dim': configs.num_dim
+        }
 
         #######
         ####### ID_S3_EX1-3 END #######     
@@ -118,6 +157,12 @@ def create_model(configs):
         ####### ID_S3_EX1-4 START #######     
         #######
         print("student task ID_S3_EX1-4")
+        model = fpn_resnet.get_pose_net(
+                num_layers = configs.num_layers,
+                heads = configs.heads, 
+                head_conv = configs.head_conv, 
+                imagenet_pretrained = configs.imagenet_pretrained
+            )
 
         #######
         ####### ID_S3_EX1-4 END #######     
@@ -167,6 +212,15 @@ def detect_objects(input_bev_maps, model, configs):
             ####### ID_S3_EX1-5 START #######     
             #######
             print("student task ID_S3_EX1-5")
+            outputs['hm_cen'] = _sigmoid(outputs['hm_cen'])
+            outputs['cen_offset'] = _sigmoid(outputs['cen_offset'])
+            # detections size (batch_size, K, 10)
+            detections = decode(outputs['hm_cen'], outputs['cen_offset'], outputs['direction'], outputs['z_coor'],
+                                outputs['dim'], K=configs.K)
+            detections = detections.cpu().numpy().astype(np.float32)
+            detections = post_processing(detections, configs)
+            detections = detections[0][1]
+            print(detections)
 
             #######
             ####### ID_S3_EX1-5 END #######     
@@ -180,7 +234,7 @@ def detect_objects(input_bev_maps, model, configs):
     objects = [] 
 
     ## step 1 : check whether there are any detections
-
+    
         ## step 2 : loop over all detections
         
             ## step 3 : perform the conversion using the limits for x, y and z set in the configs structure
