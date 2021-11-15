@@ -56,6 +56,7 @@ def show_pcl(pcl):
         vis_pcl.update_geometry(pcd)
         vis_pcl.poll_events()
         vis_pcl.update_renderer() 
+        vis_pcl.close()
 
     def close_window_callback(vis_pcl):
         vis_pcl.destroy_window()
