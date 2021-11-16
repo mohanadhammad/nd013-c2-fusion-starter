@@ -66,7 +66,7 @@ def load_configs_model(model_name='darknet', configs=None):
         
         configs.model_path = os.path.join(parent_path, 'tools', 'objdet_models', 'resnet')
         configs.pretrained_filename = os.path.join(configs.model_path, 'pretrained', 'fpn_resnet_18_epoch_300.pth')
-        configs.arch = 'fpn_resnet_18'
+        configs.arch = 'fpn_resnet'
         configs.batch_size = 1
         configs.no_cuda = False
         configs.gpu_idx = 0
@@ -234,12 +234,28 @@ def detect_objects(input_bev_maps, model, configs):
     objects = [] 
 
     ## step 1 : check whether there are any detections
+    ## step 2 : loop over all detections
+    for detection in detections:
+        obj_id, obj_x, obj_y, obj_z, obj_h, obj_w, obj_l, obj_yaw = detection
     
-        ## step 2 : loop over all detections
+        ## step 3 : perform the conversion using the limits for x, y and z set in the configs structure
+        bev_xdiscret = (configs.lim_x[1] - configs.lim_x[0]) / configs.bev_height
+        bev_ydiscret = (configs.lim_y[1] - configs.lim_y[0]) / configs.bev_width
+
+        obj_id = 1 # vehicle id
+        yaw = obj_yaw
+        x = obj_y * bev_xdiscret # multiply by discrete to convert back to real values
+        y = (obj_x * bev_ydiscret) - ((configs.lim_y[1] - configs.lim_y[0]) / 2.0)
+        z = obj_z
+        w = obj_w * bev_ydiscret 
+        l = obj_l * bev_xdiscret
+        h = obj_h
         
-            ## step 3 : perform the conversion using the limits for x, y and z set in the configs structure
-        
+        if ((x >= configs.lim_x[0]) and (x <= configs.lim_x[1]) and
+            (y >= configs.lim_y[0]) and (y <= configs.lim_y[1]) and
+            (z >= configs.lim_z[0]) and (z <= configs.lim_z[1])):
             ## step 4 : append the current object to the 'objects' array
+            objects.append([obj_id, x, y, z, h, w, l, yaw])
         
     #######
     ####### ID_S3_EX2 START #######   
