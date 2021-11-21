@@ -243,7 +243,7 @@ def detect_objects(input_bev_maps, model, configs):
         bev_ydiscret = (configs.lim_y[1] - configs.lim_y[0]) / configs.bev_width
 
         obj_id = 1 # vehicle id
-        yaw = obj_yaw
+        yaw = -obj_yaw # Note that the yaw angle returned by the network needs to be inverted in order to account for the directions of the coordinate axes
         x = obj_y * bev_xdiscret # multiply by discrete to convert back to real values
         y = (obj_x * bev_ydiscret) - ((configs.lim_y[1] - configs.lim_y[0]) / 2.0)
         z = obj_z
