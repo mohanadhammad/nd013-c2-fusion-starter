@@ -54,6 +54,7 @@ import misc.params as params
 # data_filename = 'training_segment-10072231702153043603_5725_000_5745_000_with_camera_labels.tfrecord' # Sequence 2
 # data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord' # Sequence 3
 # show_only_frames = [0, 1] # show only frames in interval for debugging
+# configs_det = det.load_configs(model_name='darknet') # options are 'darknet', 'fpn_resnet'
 
 ## Selective execution and visualization
 # exec_data = ['pcl_from_rangeimage'] # options: 'pcl_from_rangeimage', 'load_image'
@@ -72,6 +73,7 @@ display_pcl = False
 # exec_data = [] # options: 'pcl_from_rangeimage', 'load_image'
 # exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
 # exec_visualization = ['show_range_image'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+# configs_det = det.load_configs(model_name='darknet') # options are 'darknet', 'fpn_resnet'
 
 ##### S1_Ex.2 : Visualize lidar point-cloud (ID_S1_EX2)
 # data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord' # Sequence 1
@@ -79,21 +81,29 @@ display_pcl = False
 # exec_data = [] # options: 'pcl_from_rangeimage', 'load_image'
 # exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
 # exec_visualization = ['show_pcl'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+# configs_det = det.load_configs(model_name='darknet') # options are 'darknet', 'fpn_resnet'
 # display_pcl = True
 
 #### Section 2 : Create Birds-Eye View from Lidar PCL
 ##### S2_Ex.1 : Convert sensor coordinates to BEV-map coordinates (ID_S2_EX1)
 ##### S2_Ex.2 : Compute intensity layer of the BEV map (ID_S2_EX2)
 ##### S2_Ex.3 : Compute height layer of the BEV map (ID_S2_EX3)
-data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
-show_only_frames = [0, 1]
-exec_data = ['pcl_from_rangeimage'] # options: 'pcl_from_rangeimage', 'load_image'
-exec_detection = ['bev_from_pcl'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
-exec_visualization = [] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+# data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+# show_only_frames = [0, 1]
+# exec_data = ['pcl_from_rangeimage'] # options: 'pcl_from_rangeimage', 'load_image'
+# exec_detection = ['bev_from_pcl'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+# exec_visualization = [] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+# configs_det = det.load_configs(model_name='darknet') # options are 'darknet', 'fpn_resnet'
 
 #### Section 3 : Model-based Object Detection in BEV Image
 ##### S3_Ex.1 : Add a second model from a GitHub repo (ID_S3_EX1)
 ##### S3_Ex.2 : Extract 3D bounding boxes from model response (ID_S3_EX2)
+data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+show_only_frames = [50, 51]
+exec_data = ['pcl_from_rangeimage', 'load_image'] # options: 'pcl_from_rangeimage', 'load_image'
+exec_detection = ['bev_from_pcl', 'detect_objects'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+exec_visualization = ['show_objects_in_bev_labels_in_camera'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+configs_det = det.load_configs(model_name='fpn_resnet') # options are 'darknet', 'fpn_resnet'
 
 #### Section 4 : Performance Evaluation for Object Detection
 ##### S4_Ex.1 : Compute intersection-over-union between labels and detections (ID_S4_EX1)
@@ -110,7 +120,6 @@ datafile = WaymoDataFileReader(data_fullpath)
 datafile_iter = iter(datafile)  # initialize dataset iterator
 
 ## Initialize object detection
-configs_det = det.load_configs(model_name='darknet') # options are 'darknet', 'fpn_resnet'
 model_det = det.create_model(configs_det)
 
 configs_det.use_labels_as_objects = False # True = use groundtruth labels as objects, False = use model-based detection

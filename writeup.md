@@ -376,34 +376,174 @@ def bev_from_pcl(lidar_pcl, configs):
 ##### S3_Ex.1 : Add a second model from a GitHub repo (ID_S3_EX1)
 ###### Overview
 
+1. In addition to Complex YOLO, extract the code for output decoding and post-processing from the GitHub repo.
+
 ###### Task Preparations
 ```` python
+data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+show_only_frames = [50, 51]
+exec_data = ['pcl_from_rangeimage', 'load_image']
+exec_detection = ['bev_from_pcl', 'detect_objects']
+exec_visualization = ['show_objects_in_bev_labels_in_camera']
+configs_det = det.load_configs(model_name='fpn_resnet')
 ````
 
 ###### Code Implementation
 ```` python
-````
+# create model according to selected model type
+def create_model(configs):
 
-###### Output Sample
-![]()
+    # check for availability of model file
+    assert os.path.isfile(configs.pretrained_filename), "No file at {}".format(configs.pretrained_filename)
+
+    # create model depending on architecture name
+    if (configs.arch == 'darknet') and (configs.cfgfile is not None):
+        print('using darknet')
+        model = darknet(cfgfile=configs.cfgfile, use_giou_loss=configs.use_giou_loss)    
+    
+    elif 'fpn_resnet' in configs.arch:
+        print('using ResNet architecture with feature pyramid')
+        
+        ####### ID_S3_EX1-4 START #######     
+        #######
+        print("student task ID_S3_EX1-4")
+        model = fpn_resnet.get_pose_net(
+                num_layers = configs.num_layers,
+                heads = configs.heads, 
+                head_conv = configs.head_conv, 
+                imagenet_pretrained = configs.imagenet_pretrained
+            )
+
+        #######
+        ####### ID_S3_EX1-4 END #######     
+    
+    else:
+        assert False, 'Undefined model backbone'
+
+    # load model weights
+    model.load_state_dict(torch.load(configs.pretrained_filename, map_location='cpu'))
+    print('Loaded weights from {}\n'.format(configs.pretrained_filename))
+
+    # set model to evaluation state
+    configs.device = torch.device('cpu' if configs.no_cuda else 'cuda:{}'.format(configs.gpu_idx))
+    model = model.to(device=configs.device)  # load model to either cpu or gpu
+    model.eval()          
+
+    return model
+````
 
 ##### S3_Ex.2 : Extract 3D bounding boxes from model response (ID_S3_EX2)
 ###### Overview
 
+1. Transform BEV coordinates in [pixels] into vehicle coordinates in [m]
+2. Convert model output to expected bounding box format `[class-id, x, y, z, h, w, l, yaw]`
+
 ###### Task Preparations
 ```` python
+data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+show_only_frames = [50, 51]
+exec_data = ['pcl_from_rangeimage', 'load_image']
+exec_detection = ['bev_from_pcl', 'detect_objects']
+exec_visualization = ['show_objects_in_bev_labels_in_camera']
+configs_det = det.load_configs(model_name='fpn_resnet')
 ````
 
 ###### Code Implementation
 ```` python
+# detect trained objects in birds-eye view
+def detect_objects(input_bev_maps, model, configs):
+
+    # deactivate autograd engine during test to reduce memory usage and speed up computations
+    with torch.no_grad():  
+
+        # perform inference
+        outputs = model(input_bev_maps)
+
+        # decode model output into target object format
+        if 'darknet' in configs.arch:
+
+            # perform post-processing
+            output_post = post_processing_v2(outputs, conf_thresh=configs.conf_thresh, nms_thresh=configs.nms_thresh) 
+            detections = []
+            for sample_i in range(len(output_post)):
+                if output_post[sample_i] is None:
+                    continue
+                detection = output_post[sample_i]
+                for obj in detection:
+                    x, y, w, l, im, re, _, _, _ = obj
+                    yaw = np.arctan2(im, re)
+                    detections.append([1, x, y, 0.0, 1.50, w, l, yaw])    
+
+        elif 'fpn_resnet' in configs.arch:
+            # decode output and perform post-processing
+            
+            ####### ID_S3_EX1-5 START #######     
+            #######
+            print("student task ID_S3_EX1-5")
+            outputs['hm_cen'] = _sigmoid(outputs['hm_cen'])
+            outputs['cen_offset'] = _sigmoid(outputs['cen_offset'])
+            # detections size (batch_size, K, 10)
+            detections = decode(outputs['hm_cen'], outputs['cen_offset'], outputs['direction'], outputs['z_coor'],
+                                outputs['dim'], K=configs.K)
+            detections = detections.cpu().numpy().astype(np.float32)
+            detections = post_processing(detections, configs)
+            detections = detections[0][1]
+            print(detections)
+
+            #######
+            ####### ID_S3_EX1-5 END #######     
+
+            
+
+    ####### ID_S3_EX2 START #######     
+    #######
+    # Extract 3d bounding boxes from model response
+    print("student task ID_S3_EX2")
+    objects = [] 
+
+    ## step 1 : check whether there are any detections
+    ## step 2 : loop over all detections
+    for detection in detections:
+        obj_id, obj_x, obj_y, obj_z, obj_h, obj_w, obj_l, obj_yaw = detection
+    
+        ## step 3 : perform the conversion using the limits for x, y and z set in the configs structure
+        bev_xdiscret = (configs.lim_x[1] - configs.lim_x[0]) / configs.bev_height
+        bev_ydiscret = (configs.lim_y[1] - configs.lim_y[0]) / configs.bev_width
+
+        obj_id = 1 # vehicle id
+        yaw = -obj_yaw # Note that the yaw angle returned by the network needs to be inverted in order to account for the directions of the coordinate axes
+        x = obj_y * bev_xdiscret # multiply by discrete to convert back to real values
+        y = (obj_x * bev_ydiscret) - ((configs.lim_y[1] - configs.lim_y[0]) / 2.0)
+        z = obj_z
+        w = obj_w * bev_ydiscret 
+        l = obj_l * bev_xdiscret
+        h = obj_h
+        
+        if ((x >= configs.lim_x[0]) and (x <= configs.lim_x[1]) and
+            (y >= configs.lim_y[0]) and (y <= configs.lim_y[1]) and
+            (z >= configs.lim_z[0]) and (z <= configs.lim_z[1])):
+            ## step 4 : append the current object to the 'objects' array
+            objects.append([obj_id, x, y, z, h, w, l, yaw])
+        
+    #######
+    ####### ID_S3_EX2 START #######   
+    
+    return objects
 ````
 
 ###### Output Sample
-![]()
+![](doc/figures/S3_E2_sample1.png)
+![](doc/figures/S3_E2_sample2.png)
 
 #### Section 4 : Performance Evaluation for Object Detection
 ##### S4_Ex.1 : Compute intersection-over-union between labels and detections (ID_S4_EX1)
 ###### Overview
+
+1. For all pairings of ground-truth labels and detected objects, compute the degree of geometrical overlap
+2. The function `tools.compute_box_corners` returns the four corners of a bounding box which can be used with the Polygon structure of the Shapely toolbox
+3. Assign each detected object to a label only if the IOU exceeds a given threshold
+4. In case of multiple matches, keep the object/label pair with max. IOU
+5. Count all object/label-pairs and store them as “true positives”
 
 ###### Task Preparations
 ```` python
@@ -419,6 +559,8 @@ def bev_from_pcl(lidar_pcl, configs):
 ##### S4_Ex.2 : Compute false-negatives and false-positives (ID_S4_EX2)
 ###### Overview
 
+1. Compute the number of false-negatives and false-positives based on the results from IOU and the number of ground-truth labels
+
 ###### Task Preparations
 ```` python
 ````
@@ -432,6 +574,9 @@ def bev_from_pcl(lidar_pcl, configs):
 
 ##### S4_Ex.3 : Compute precision and recall (ID_S4_EX3)
 ###### Overview
+
+1. Compute “precision” over all evaluated frames using true-positives and false-positives
+2. Compute “recall” over all evaluated frames using true-positives and false-negatives
 
 ###### Task Preparations
 ```` python
