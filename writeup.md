@@ -10,7 +10,13 @@ Please use this starter template to answer the following questions:
 
 This task is about extracting and visualizing the range images from the Waymo Open dataset. The intensity and range channels are extracted and converted to 8-bit integer value range. Then OpenCV library is used to stack the range and intensity images vertically and visualize it.
 
-##### Ex.1 : Visualize range image channels (ID_S1_EX1)
+##### S1_Ex.1 : Visualize range image channels (ID_S1_EX1)
+
+###### Overview
+1. Extract LiDAR data and range image for the roof-mounted LiDAR.
+2. Extract the range and intensity channels from the range image.
+3. Convert both channels from real float values to 8-bit range values.
+4. Stack the range and intensity channels vertically and visualize it with OpenCV library.
 
 ###### Task Preparations:
 
@@ -21,12 +27,6 @@ exec_data = []
 exec_detection = []
 exec_visualization = ['show_range_image']
 ````
-
-###### Steps:
-1. Extract LiDAR data and range image for the roof-mounted LiDAR.
-2. Extract the range and intensity channels from the range image.
-3. Convert both channels from real float values to 8-bit range values.
-4. Stack the range and intensity channels vertically and visualize it with OpenCV library.
 
 ###### Code Implementation:
 
@@ -78,25 +78,87 @@ def show_range_image(frame, lidar_name):
     return img_range_intensity
 ````
 
-###### Output:
+###### Output Sample
 
 ![range_image_frame_0](doc/figures/S1_E1.png)
 
-##### Ex.2 : Visualize lidar point-cloud (ID_S1_EX2)
+##### S1_Ex.2 : Visualize lidar point-cloud (ID_S1_EX2)
+
+###### Overview
+
+The point cloud is visualized using the Open3D library.
+
+###### Task Preparations
+
+```` python
+data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord' # Sequence 1
+show_only_frames = [0, 200]
+exec_data = []
+exec_detection = []
+exec_visualization = ['show_pcl']
+exec_list = make_exec_list(exec_data, exec_detection, exec_visualization)
+display_pcl = True
+````
+
+###### Code Implementation
+``` python
+# visualize lidar point-cloud
+def show_pcl(pcl, enable_vis=False):
+    ####### ID_S1_EX2 START #######     
+    #######
+    print("student task ID_S1_EX2")
+
+    # step 2 : create instance of open3d point-cloud class
+    pcd = o3d.geometry.PointCloud()
+
+    # step 3 : set points in pcd instance by converting the point-cloud into 3d vectors (using open3d function Vector3dVector)
+    pcd.points = o3d.utility.Vector3dVector(pcl[:,:3]) # take first three elements (x, y, z) describing location and ignore fourth element for intensity
+
+    if (enable_vis):
+        # step 1 : initialize open3d with key callback and create window
+        vis = o3d.visualization.VisualizerWithKeyCallback()
+        vis.create_window(window_name='Lidar Point Cloud')
+        
+        # step 4 : for the first frame, add the pcd instance to visualization using add_geometry; for all other frames, use update_geometry instead
+        vis.add_geometry(pcd)
+
+        # step 5 : visualize point cloud and keep window open until right-arrow is pressed (key-code 262)
+        def next_frame_callback(vis_pcl):
+            vis_pcl.update_geometry(pcd)
+            vis_pcl.poll_events()
+            vis_pcl.update_renderer() 
+            vis_pcl.close()
+
+        def close_window_callback(vis_pcl):
+            vis_pcl.destroy_window()
+
+        vis.register_key_callback(262, next_frame_callback)
+        vis.register_key_callback(32, close_window_callback)
+        # vis.poll_events()
+        # vis.update_renderer()
+        vis.run()
+
+    #######
+    ####### ID_S1_EX2 END ####### 
+```
+###### Output Sample
+
+![pcl_show_sample](doc/figures/S1_E2_sample1.png)
+![pcl_show_sample](doc/figures/S1_E2_sample2.png)
 
 #### Section 2 : Create Birds-Eye View from Lidar PCL
-##### Ex.1 : Convert sensor coordinates to BEV-map coordinates (ID_S2_EX1)
-##### Ex.2 : Compute intensity layer of the BEV map (ID_S2_EX2)
-##### Ex.3 : Compute height layer of the BEV map (ID_S2_EX3)
+##### S2_Ex.1 : Convert sensor coordinates to BEV-map coordinates (ID_S2_EX1)
+##### S2_Ex.2 : Compute intensity layer of the BEV map (ID_S2_EX2)
+##### S2_Ex.3 : Compute height layer of the BEV map (ID_S2_EX3)
 
 #### Section 3 : Model-based Object Detection in BEV Image
-##### Ex.1 : Add a second model from a GitHub repo (ID_S3_EX1)
-##### Ex.2 : Extract 3D bounding boxes from model response (ID_S3_EX2)
+##### S3_Ex.1 : Add a second model from a GitHub repo (ID_S3_EX1)
+##### S3_Ex.2 : Extract 3D bounding boxes from model response (ID_S3_EX2)
 
 #### Section 4 : Performance Evaluation for Object Detection
-##### Ex.1 : Compute intersection-over-union between labels and detections (ID_S4_EX1)
-##### Ex.2 : Compute false-negatives and false-positives (ID_S4_EX2)
-##### Ex.3 : Compute precision and recall (ID_S4_EX3)
+##### S4_Ex.1 : Compute intersection-over-union between labels and detections (ID_S4_EX1)
+##### S4_Ex.2 : Compute false-negatives and false-positives (ID_S4_EX2)
+##### S4_Ex.3 : Compute precision and recall (ID_S4_EX3)
 
 ### 2. Do you see any benefits in camera-lidar fusion compared to lidar-only tracking (in theory and in your concrete results)? 
 
