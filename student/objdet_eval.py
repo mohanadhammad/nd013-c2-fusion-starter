@@ -49,16 +49,39 @@ def measure_detection_performance(detections, labels, labels_valid, min_iou=0.5)
             print("student task ID_S4_EX1 ")
 
             ## step 1 : extract the four corners of the current label bounding-box
+            label_bbox = tools.compute_box_corners(label.box.center_x, label.box.center_y, label.box.width, label.box.length, label.box.heading)
             
             ## step 2 : loop over all detected objects
+            for detection in detections:
 
                 ## step 3 : extract the four corners of the current detection
+                # obj = [obj_id, x, y, z, h, w, l, yaw]
+                _, det_x, det_y, det_z, _, det_w, det_l, det_yaw = detection
+                detct_bbox = tools.compute_box_corners(det_x, det_y, det_w, det_l, det_yaw)
                 
                 ## step 4 : computer the center distance between label and detection bounding-box in x, y, and z
+                distances = np.array([label.box.center_x - det_x, label.box.center_y - det_y, label.box.center_z - det_z])
+                distance_x = distances.item(0)
+                distance_y = distances.item(1)
+                distance_z = distances.item(2)                
+                # distance_x = np.array(label.box.center_x - det_x).item()
+                # distance_y = np.array(label.box.center_y - det_y).item()
+                # distance_z = np.array(label.box.center_z - det_z).item()
                 
                 ## step 5 : compute the intersection over union (IOU) between label and detection bounding-box
+                label_poly = Polygon(label_bbox)
+                detct_poly = Polygon(detct_bbox)
+                
+                intersection_area = label_poly.intersection(detct_poly).area
+                union_area = label_poly.union(detct_poly).area
+                
+                iou = intersection_area / (union_area + np.finfo(float).eps)
                 
                 ## step 6 : if IOU exceeds min_iou threshold, store [iou,dist_x, dist_y, dist_z] in matches_lab_det and increase the TP count
+                if (iou > min_iou):
+                    match = [iou, distance_x, distance_y, distance_z]
+                    matches_lab_det.append(match)
+                    true_positives += 1
                 
             #######
             ####### ID_S4_EX1 END #######     
@@ -77,13 +100,13 @@ def measure_detection_performance(detections, labels, labels_valid, min_iou=0.5)
     # compute positives and negatives for precision/recall
     
     ## step 1 : compute the total number of positives present in the scene
-    all_positives = 0
+    all_positives = labels_valid.sum()
 
     ## step 2 : compute the number of false negatives
-    false_negatives = 0
+    false_negatives = abs(all_positives - true_positives)
 
     ## step 3 : compute the number of false positives
-    false_positives = 0
+    false_positives = abs(len(detections) - true_positives)
     
     #######
     ####### ID_S4_EX2 END #######     
