@@ -98,17 +98,24 @@ display_pcl = False
 #### Section 3 : Model-based Object Detection in BEV Image
 ##### S3_Ex.1 : Add a second model from a GitHub repo (ID_S3_EX1)
 ##### S3_Ex.2 : Extract 3D bounding boxes from model response (ID_S3_EX2)
-data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
-show_only_frames = [50, 51]
-exec_data = ['pcl_from_rangeimage', 'load_image'] # options: 'pcl_from_rangeimage', 'load_image'
-exec_detection = ['bev_from_pcl', 'detect_objects'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
-exec_visualization = ['show_objects_in_bev_labels_in_camera'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
-configs_det = det.load_configs(model_name='fpn_resnet') # options are 'darknet', 'fpn_resnet'
+# data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+# show_only_frames = [50, 51]
+# exec_data = ['pcl_from_rangeimage', 'load_image'] # options: 'pcl_from_rangeimage', 'load_image'
+# exec_detection = ['bev_from_pcl', 'detect_objects'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+# exec_visualization = ['show_objects_in_bev_labels_in_camera'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+# configs_det = det.load_configs(model_name='fpn_resnet') # options are 'darknet', 'fpn_resnet'
 
 #### Section 4 : Performance Evaluation for Object Detection
+data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+exec_data = ['pcl_from_rangeimage'] # options: 'pcl_from_rangeimage', 'load_image'
+exec_detection = ['bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+exec_visualization = ['show_detection_performance'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+configs_det = det.load_configs(model_name='darknet') # options are 'darknet', 'fpn_resnet'
 ##### S4_Ex.1 : Compute intersection-over-union between labels and detections (ID_S4_EX1)
 ##### S4_Ex.2 : Compute false-negatives and false-positives (ID_S4_EX2)
+show_only_frames = [50, 51]
 ##### S4_Ex.3 : Compute precision and recall (ID_S4_EX3)
+show_only_frames = [50, 150]
 
 # assign execution list
 exec_list = make_exec_list(exec_data, exec_detection, exec_visualization)

@@ -547,10 +547,87 @@ def detect_objects(input_bev_maps, model, configs):
 
 ###### Task Preparations
 ```` python
+data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+show_only_frames = [50, 51]
+exec_data = ['pcl_from_rangeimage']
+exec_detection = ['bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance']
+exec_visualization = ['show_detection_performance']
+configs_det = det.load_configs(model_name='darknet')
 ````
 
 ###### Code Implementation
 ```` python
+# compute various performance measures to assess object detection
+def measure_detection_performance(detections, labels, labels_valid, min_iou=0.5):
+    
+     # find best detection for each valid label 
+    true_positives = 0 # no. of correctly detected objects
+    center_devs = []
+    ious = []
+    for label, valid in zip(labels, labels_valid):
+        matches_lab_det = []
+        if valid: # exclude all labels from statistics which are not considered valid
+            
+            # compute intersection over union (iou) and distance between centers
+
+            ####### ID_S4_EX1 START #######     
+            #######
+            print("student task ID_S4_EX1 ")
+
+            ## step 1 : extract the four corners of the current label bounding-box
+            label_bbox = tools.compute_box_corners(label.box.center_x, label.box.center_y, label.box.width, label.box.length, label.box.heading)
+            
+            ## step 2 : loop over all detected objects
+            for detection in detections:
+
+                ## step 3 : extract the four corners of the current detection
+                # obj = [obj_id, x, y, z, h, w, l, yaw]
+                _, det_x, det_y, det_z, _, det_w, det_l, det_yaw = detection
+                detct_bbox = tools.compute_box_corners(det_x, det_y, det_w, det_l, det_yaw)
+                
+                ## step 4 : computer the center distance between label and detection bounding-box in x, y, and z
+                distances = np.array([label.box.center_x - det_x, label.box.center_y - det_y, label.box.center_z - det_z])
+                distance_x = distances.item(0)
+                distance_y = distances.item(1)
+                distance_z = distances.item(2)                
+                
+                ## step 5 : compute the intersection over union (IOU) between label and detection bounding-box
+                label_poly = Polygon(label_bbox)
+                detct_poly = Polygon(detct_bbox)
+                
+                intersection_area = label_poly.intersection(detct_poly).area
+                union_area = label_poly.union(detct_poly).area
+                
+                iou = intersection_area / (union_area + np.finfo(float).eps)
+                
+                ## step 6 : if IOU exceeds min_iou threshold, store [iou,dist_x, dist_y, dist_z] in matches_lab_det and increase the TP count
+                if (iou > min_iou):
+                    match = [iou, distance_x, distance_y, distance_z]
+                    matches_lab_det.append(match)
+                    true_positives += 1
+                
+            #######
+            ####### ID_S4_EX1 END #######     
+            
+        # find best match and compute metrics
+        if matches_lab_det:
+            best_match = max(matches_lab_det,key=itemgetter(1)) # retrieve entry with max iou in case of multiple candidates   
+            ious.append(best_match[0])
+            center_devs.append(best_match[1:])
+
+
+    ####### ID_S4_EX2 START #######     
+    #######
+    
+    ...
+    
+    #######
+    ####### ID_S4_EX2 END #######     
+    
+    pos_negs = [all_positives, true_positives, false_negatives, false_positives]
+    det_performance = [ious, center_devs, pos_negs]
+    
+    return det_performance
 ````
 
 ###### Output Sample
@@ -563,10 +640,66 @@ def detect_objects(input_bev_maps, model, configs):
 
 ###### Task Preparations
 ```` python
+data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+show_only_frames = [50, 51]
+exec_data = ['pcl_from_rangeimage']
+exec_detection = ['bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance']
+exec_visualization = ['show_detection_performance']
+configs_det = det.load_configs(model_name='darknet')
 ````
 
 ###### Code Implementation
-```` python
+````python
+# compute various performance measures to assess object detection
+def measure_detection_performance(detections, labels, labels_valid, min_iou=0.5):
+    
+     # find best detection for each valid label 
+    true_positives = 0 # no. of correctly detected objects
+    center_devs = []
+    ious = []
+    for label, valid in zip(labels, labels_valid):
+        matches_lab_det = []
+        if valid: # exclude all labels from statistics which are not considered valid
+            
+            # compute intersection over union (iou) and distance between centers
+
+            ####### ID_S4_EX1 START #######     
+            #######
+
+            ...
+                
+            #######
+            ####### ID_S4_EX1 END #######     
+            
+        # find best match and compute metrics
+        if matches_lab_det:
+            best_match = max(matches_lab_det,key=itemgetter(1)) # retrieve entry with max iou in case of multiple candidates   
+            ious.append(best_match[0])
+            center_devs.append(best_match[1:])
+
+
+    ####### ID_S4_EX2 START #######     
+    #######
+    print("student task ID_S4_EX2")
+    
+    # compute positives and negatives for precision/recall
+    
+    ## step 1 : compute the total number of positives present in the scene
+    all_positives = labels_valid.sum()
+
+    ## step 2 : compute the number of false negatives
+    false_negatives = abs(all_positives - true_positives)
+
+    ## step 3 : compute the number of false positives
+    false_positives = abs(len(detections) - true_positives)
+    
+    #######
+    ####### ID_S4_EX2 END #######     
+    
+    pos_negs = [all_positives, true_positives, false_negatives, false_positives]
+    det_performance = [ious, center_devs, pos_negs]
+    
+    return det_performance
 ````
 
 ###### Output Sample
@@ -580,14 +713,57 @@ def detect_objects(input_bev_maps, model, configs):
 
 ###### Task Preparations
 ```` python
+data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+show_only_frames = [50, 150]
+exec_data = ['pcl_from_rangeimage']
+exec_detection = ['bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance']
+exec_visualization = ['show_detection_performance']
+configs_det = det.load_configs(model_name='darknet')
 ````
 
 ###### Code Implementation
-```` python
+````python
+# evaluate object detection performance based on all frames
+def compute_performance_stats(det_performance_all):
+
+    # extract elements
+    ious = []
+    center_devs = []
+    pos_negs = []
+    for item in det_performance_all:
+        ious.append(item[0])
+        center_devs.append(item[1])
+        pos_negs.append(item[2])
+    
+    ####### ID_S4_EX3 START #######     
+    #######    
+    print('student task ID_S4_EX3')
+
+    ## step 1 : extract the total number of positives, true positives, false negatives and false positives
+    pos_negs_array = np.asarray(pos_negs)
+    true_positives = sum(pos_negs_array[:,1])
+    false_negatives = sum(pos_negs_array[:,2])
+    false_positives = sum(pos_negs_array[:,3])
+    
+    ## step 2 : compute precision
+    precision = true_positives / float(true_positives + false_positives)
+
+    ## step 3 : compute recall 
+    recall = true_positives / float(true_positives + false_negatives)
+
+    #######    
+    ####### ID_S4_EX3 END #######     
+    print('precision = ' + str(precision) + ", recall = " + str(recall))   
+
+    ...
 ````
 
 ###### Output Sample
-![]()
+![](doc/figures/S4_E2_part1.png)
+
+To make sure that the code produces plausible results, the flag ``configs_det.use_labels_as_objects`` should be set to True in a second run. The precision and recall when using the labeled objects as the detections the precision and recall should be equal to 1.0 and errors equal to 0.0
+
+![](doc/figures/S4_E2_part2.png)
 
 
 ### 2. Do you see any benefits in camera-lidar fusion compared to lidar-only tracking (in theory and in your concrete results)? 
