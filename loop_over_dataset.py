@@ -55,6 +55,41 @@ data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_cam
 # data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord' # Sequence 3
 show_only_frames = [50, 150] # show only frames in interval for debugging
 
+## Selective execution and visualization
+# exec_data = ['pcl_from_rangeimage'] # options: 'pcl_from_rangeimage', 'load_image'
+# exec_detection = ['bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+# exec_tracking = [] # options are 'perform_tracking'
+# exec_visualization = ['show_detection_performance'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+# # exec_list = make_exec_list(exec_detection, exec_tracking, exec_visualization)
+# exec_list = make_exec_list(exec_data, exec_detection, exec_visualization)
+vis_pause_time = 0 # set pause time between frames in ms (0 = stop between frames until key is pressed)
+
+#### Section 1 : Compute Lidar Point-Cloud from Range Image
+##### Ex.1 : Visualize range image channels (ID_S1_EX1)
+data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+show_only_frames = [0, 1]
+exec_data = [] # options: 'pcl_from_rangeimage', 'load_image'
+exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+exec_visualization = ['show_range_image'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+exec_list = make_exec_list(exec_data, exec_detection, exec_visualization)
+
+##### Ex.2 : Visualize lidar point-cloud (ID_S1_EX2)
+
+#### Section 2 : Create Birds-Eye View from Lidar PCL
+##### Ex.1 : Convert sensor coordinates to BEV-map coordinates (ID_S2_EX1)
+##### Ex.2 : Compute intensity layer of the BEV map (ID_S2_EX2)
+##### Ex.3 : Compute height layer of the BEV map (ID_S2_EX3)
+
+#### Section 3 : Model-based Object Detection in BEV Image
+##### Ex.1 : Add a second model from a GitHub repo (ID_S3_EX1)
+##### Ex.2 : Extract 3D bounding boxes from model response (ID_S3_EX2)
+
+#### Section 4 : Performance Evaluation for Object Detection
+##### Ex.1 : Compute intersection-over-union between labels and detections (ID_S4_EX1)
+##### Ex.2 : Compute false-negatives and false-positives (ID_S4_EX2)
+##### Ex.3 : Compute precision and recall (ID_S4_EX3)
+
+
 ## Prepare Waymo Open Dataset file for loading
 data_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dataset', data_filename) # adjustable path in case this script is called from another working directory
 results_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'results')
@@ -78,16 +113,6 @@ manager = Trackmanagement() # init track manager
 lidar = None # init lidar sensor object
 camera = None # init camera sensor object
 np.random.seed(10) # make random values predictable
-
-## Selective execution and visualization
-exec_data = ['pcl_from_rangeimage'] # options: 'pcl_from_rangeimage', 'load_image'
-exec_detection = ['bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
-exec_tracking = [] # options are 'perform_tracking'
-exec_visualization = ['show_detection_performance'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
-# exec_list = make_exec_list(exec_detection, exec_tracking, exec_visualization)
-exec_list = make_exec_list(exec_data, exec_detection, exec_visualization)
-vis_pause_time = 0 # set pause time between frames in ms (0 = stop between frames until key is pressed)
-
 
 ##################
 ## Perform detection & tracking over all selected frames
