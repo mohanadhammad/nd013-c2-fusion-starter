@@ -33,14 +33,10 @@ import misc.objdet_tools as tools
 import zlib
 
 # visualize lidar point-cloud
-def show_pcl(pcl):
+def show_pcl(pcl, enable_vis=False):
     ####### ID_S1_EX2 START #######     
     #######
     print("student task ID_S1_EX2")
-
-    # step 1 : initialize open3d with key callback and create window
-    vis = o3d.visualization.VisualizerWithKeyCallback()
-    vis.create_window(window_name='Lidar Point Cloud')
 
     # step 2 : create instance of open3d point-cloud class
     pcd = o3d.geometry.PointCloud()
@@ -48,24 +44,29 @@ def show_pcl(pcl):
     # step 3 : set points in pcd instance by converting the point-cloud into 3d vectors (using open3d function Vector3dVector)
     pcd.points = o3d.utility.Vector3dVector(pcl[:,:3]) # take first three elements (x, y, z) describing location and ignore fourth element for intensity
 
-    # step 4 : for the first frame, add the pcd instance to visualization using add_geometry; for all other frames, use update_geometry instead
-    vis.add_geometry(pcd)
+    if (enable_vis):
+        # step 1 : initialize open3d with key callback and create window
+        vis = o3d.visualization.VisualizerWithKeyCallback()
+        vis.create_window(window_name='Lidar Point Cloud')
+        
+        # step 4 : for the first frame, add the pcd instance to visualization using add_geometry; for all other frames, use update_geometry instead
+        vis.add_geometry(pcd)
 
-    # step 5 : visualize point cloud and keep window open until right-arrow is pressed (key-code 262)
-    def next_frame_callback(vis_pcl):
-        vis_pcl.update_geometry(pcd)
-        vis_pcl.poll_events()
-        vis_pcl.update_renderer() 
-        vis_pcl.close()
+        # step 5 : visualize point cloud and keep window open until right-arrow is pressed (key-code 262)
+        def next_frame_callback(vis_pcl):
+            vis_pcl.update_geometry(pcd)
+            vis_pcl.poll_events()
+            vis_pcl.update_renderer() 
+            vis_pcl.close()
 
-    def close_window_callback(vis_pcl):
-        vis_pcl.destroy_window()
+        def close_window_callback(vis_pcl):
+            vis_pcl.destroy_window()
 
-    vis.register_key_callback(262, next_frame_callback)
-    vis.register_key_callback(32, close_window_callback)
-    # vis.poll_events()
-    # vis.update_renderer()
-    vis.run()
+        vis.register_key_callback(262, next_frame_callback)
+        vis.register_key_callback(32, close_window_callback)
+        # vis.poll_events()
+        # vis.update_renderer()
+        vis.run()
 
     #######
     ####### ID_S1_EX2 END #######     
