@@ -72,21 +72,24 @@ display_pcl = False
 # exec_data = [] # options: 'pcl_from_rangeimage', 'load_image'
 # exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
 # exec_visualization = ['show_range_image'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
-# exec_list = make_exec_list(exec_data, exec_detection, exec_visualization)
 
 ##### S1_Ex.2 : Visualize lidar point-cloud (ID_S1_EX2)
-data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord' # Sequence 1
-show_only_frames = [0, 200]
-exec_data = [] # options: 'pcl_from_rangeimage', 'load_image'
-exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
-exec_visualization = ['show_pcl'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
-exec_list = make_exec_list(exec_data, exec_detection, exec_visualization)
-display_pcl = True
+# data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord' # Sequence 1
+# show_only_frames = [0, 200]
+# exec_data = [] # options: 'pcl_from_rangeimage', 'load_image'
+# exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+# exec_visualization = ['show_pcl'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+# display_pcl = True
 
 #### Section 2 : Create Birds-Eye View from Lidar PCL
 ##### S2_Ex.1 : Convert sensor coordinates to BEV-map coordinates (ID_S2_EX1)
 ##### S2_Ex.2 : Compute intensity layer of the BEV map (ID_S2_EX2)
 ##### S2_Ex.3 : Compute height layer of the BEV map (ID_S2_EX3)
+data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
+show_only_frames = [0, 1]
+exec_data = ['pcl_from_rangeimage'] # options: 'pcl_from_rangeimage', 'load_image'
+exec_detection = ['bev_from_pcl'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+exec_visualization = [] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
 
 #### Section 3 : Model-based Object Detection in BEV Image
 ##### S3_Ex.1 : Add a second model from a GitHub repo (ID_S3_EX1)
@@ -97,6 +100,8 @@ display_pcl = True
 ##### S4_Ex.2 : Compute false-negatives and false-positives (ID_S4_EX2)
 ##### S4_Ex.3 : Compute precision and recall (ID_S4_EX3)
 
+# assign execution list
+exec_list = make_exec_list(exec_data, exec_detection, exec_visualization)
 
 ## Prepare Waymo Open Dataset file for loading
 data_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dataset', data_filename) # adjustable path in case this script is called from another working directory
