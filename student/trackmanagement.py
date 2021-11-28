@@ -35,25 +35,23 @@ class Track:
         # - initialize track state and track score with appropriate values
         ############
         
-        self.x = np.zeros((6,1))
-        self.P = np.zeros((6,6))
+        self.x = np.asmatrix(np.zeros((6,1)))
+        self.P = np.asmatrix(np.zeros((6,6)))
         
         # transform 3D measurement vector to homogenous coordinate
-        z = np.asmatrix(np.ones((4, 1)))
-        z[0:3] = meas.z 
+        pos_sens = np.asmatrix(np.ones((4, 1)))
+        pos_sens[0:3] = meas.z
 
         # extract homogenous transformation matrix
-        H = meas.sensor.sens_to_veh
-        
-        g = H * z
-        self.x[0:3] = g[0:3]
+        pos_veh = meas.sensor.sens_to_veh * pos_sens
+        self.x[0:3] = pos_veh[0:3]
         
         P_pos = M_rot * meas.R * M_rot.T    # position state covariance
         
-        P_vel = np.eye((3))                 # velocity state covariance
-        P_vel[0, 0] = params.sigma_p44
-        P_vel[1, 1] = params.sigma_p55
-        P_vel[2, 2] = params.sigma_p66
+        P_vel = np.asmatrix(np.eye((3)))                 # velocity state covariance
+        P_vel[0, 0] = params.sigma_p44**2
+        P_vel[1, 1] = params.sigma_p55**2
+        P_vel[2, 2] = params.sigma_p66**2
         
         self.P[0:3, 0:3] = P_pos
         self.P[3:6, 3:6] = P_vel
@@ -114,14 +112,20 @@ class Trackmanagement:
             if meas_list: # if not empty
                 if meas_list[0].sensor.in_fov(track.x):
                     # your code goes here
-                    track.score -= 1.0 / params.window
+                    track.score -= (1.0 / params.window)
 
         # delete old tracks
         for track in self.track_list:
-            if (track.score <= params.delete_threshold):
-                if (track.P[0,0] > params.max_P or track.P[1,1] > params.max_P):
-                    self.delete_track(track)
-           
+            # holds only for confirmed tracks
+            threshold = -1
+            if track.state == 'confirmed':
+                threshold = params.delete_threshold_confirmed
+            elif track.state == 'tentative':
+                threshold = params.delete_threshold_tentative
+
+            if track.score <= threshold and (track.P[0,0] >= params.max_P or track.P[1,1] >= params.max_P):
+                self.delete_track(track)
+               
         # initialize new track with unassigned measurement
         for j in unassigned_meas: 
             if meas_list[j].sensor.name == 'lidar': # only initialize with lidar measurements
@@ -142,12 +146,12 @@ class Trackmanagement:
         
     def handle_updated_track(self, track):      
         ############
-        # TODO Step 2: implement track management for updated tracks:
+        # Step 2: implement track management for updated tracks:
         # - increase track score
         # - set track state to 'tentative' or 'confirmed'
         ############
 
-        track.score += 1.0 / params.window
+        track.score += (1.0 / params.window)
         
         if (track.score >= params.confirmed_threshold):
             track.state = 'confirmed'

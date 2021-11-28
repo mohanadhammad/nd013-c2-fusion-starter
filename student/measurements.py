@@ -50,11 +50,10 @@ class Sensor:
         pos_veh = np.asmatrix(np.ones((4, 1)))
         pos_veh[0:3] = x[0:3]
         
-        pos_cam = self.veh_to_sens * pos_veh
+        pos_sens = self.veh_to_sens * pos_veh # convert position from vehicle to sensor coordinates
+        px, py, _, _ = pos_sens
         
-        px, py, _, _ = pos_cam
-        alpha = np.arctan(py, px)
-        
+        alpha = np.arctan2(py, px)
         if alpha > self.fov[0] and alpha < self.fov[1]:
             return True
         
@@ -70,18 +69,28 @@ class Sensor:
         elif self.name == 'camera':
             
             ############
-            # TODO Step 4: implement nonlinear camera measurement function h:
+            # Step 4: implement nonlinear camera measurement function h:
             # - transform position estimate from vehicle to camera coordinates
             # - project from camera to image coordinates
             # - make sure to not divide by zero, raise an error if needed
             # - return h(x)
             ############
+            
+            p_veh = np.ones((4, 1))
+            p_veh[0:3] = x[0:3]
+            
+            p_sens = self.veh_to_sens * p_veh # transform object position from vehicle to sensor coordinates
+            p_x, p_y, p_z = p_sens[0:3]
 
-            pass
-        
-            ############
-            # END student code
-            ############ 
+            epsilon = 0.000001
+            if abs(p_sens[0]) > epsilon:
+                p_cam = np.asmatrix(np.zeros((2, 1)))
+                p_cam[0] = self.c_i - (self.f_i * p_y / p_x)
+                p_cam[1] = self.c_j - (self.f_j * p_z / p_x)
+                return p_cam
+            else:
+                raise NameError('Warning ... p_cam[0]=0!')
+                
         
     def get_H(self, x):
         # calculate Jacobian H at current x from h(x)
@@ -118,18 +127,13 @@ class Sensor:
     def generate_measurement(self, num_frame, z, meas_list):
         # generate new measurement from this sensor and add to measurement list
         ############
-        # TODO Step 4: remove restriction to lidar in order to include camera as well
+        # Step 4: remove restriction to lidar in order to include camera as well
         ############
         
         if self.name == 'lidar':
             meas = Measurement(num_frame, z, self)
             meas_list.append(meas)
-        return meas_list
-        
-        ############
-        # END student code
-        ############ 
-        
+        return meas_list       
         
 ################### 
         
@@ -159,11 +163,16 @@ class Measurement:
         elif sensor.name == 'camera':
             
             ############
-            # TODO Step 4: initialize camera measurement including z and R 
-            ############
+            # Step 4: initialize camera measurement including z and R 
+            ############           
+            self.z = np.asmatrix(np.zeros((sensor.dim_meas, 1))) # measurement vector            
+            self.z[0] = z[0]
+            self.z[1] = z[1]
 
-            pass
-        
-            ############
-            # END student code
-            ############ 
+            # measurement noise covariance matrix
+            sigma_cam_i = params.sigma_cam_i;
+            sigma_cam_j = params.sigma_cam_j;
+            
+            self.R = np.matrix([[sigma_cam_i**2,            0.0],
+                                [           0.0, sigma_cam_j**2]])
+            

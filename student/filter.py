@@ -84,8 +84,8 @@ class Filter:
         
         I = np.asmatrix(np.zeros((self.dim_state)))     # identity matrix
         
-        K = track.P * H.T * S.I                       # Kalman gain
-        x = track.x + K * gamma                       # state update
+        K = track.P * H.T * S.I                         # Kalman gain
+        x = track.x + K * gamma                         # state update
         P = (I - K*H) * track.P                         # covariance update
         
         track.set_x(x)                                  # track state assignment
