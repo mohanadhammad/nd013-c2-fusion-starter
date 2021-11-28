@@ -80,7 +80,7 @@ def show_range_image(frame, lidar_name):
 
 ###### Output Sample
 
-![range_image_frame_0](doc/figures/S1_E1.png)
+![range_image_frame_0](doc/figures/P1/S1_E1.png)
 
 ##### S1_Ex.2 : Visualize lidar point-cloud (ID_S1_EX2)
 
@@ -143,8 +143,8 @@ def show_pcl(pcl, enable_vis=False):
 ```
 ###### Output Sample
 
-![pcl_show_sample](doc/figures/S1_E2_sample1.png)
-![pcl_show_sample](doc/figures/S1_E2_sample2.png)
+![pcl_show_sample](doc/figures/P1/S1_E2_sample1.png)
+![pcl_show_sample](doc/figures/P1/S1_E2_sample2.png)
 
 #### Section 2 : Create Birds-Eye View from Lidar PCL
 ##### S2_Ex.1 : Convert sensor coordinates to BEV-map coordinates (ID_S2_EX1)
@@ -205,7 +205,7 @@ def bev_from_pcl(lidar_pcl, configs):
 
 ###### Output Sample
 
-![pcl_2_bev_coord](doc/figures/S2_E1.png)
+![pcl_2_bev_coord](doc/figures/P1/S2_E1.png)
 
 ##### S2_Ex.2 : Compute intensity layer of the BEV map (ID_S2_EX2)
 
@@ -288,7 +288,7 @@ def bev_from_pcl(lidar_pcl, configs):
 ````
 
 ###### Output Sample
-![bev_intensity](doc/figures/S2_E2.png)
+![bev_intensity](doc/figures/P1/S2_E2.png)
 
 ##### S2_Ex.3 : Compute height layer of the BEV map (ID_S2_EX3)
 ###### Overview
@@ -369,7 +369,7 @@ def bev_from_pcl(lidar_pcl, configs):
 ````
 
 ###### Output Sample
-![bev_intensity](doc/figures/S2_E3.png)
+![bev_intensity](doc/figures/P1/S2_E3.png)
 
 
 #### Section 3 : Model-based Object Detection in BEV Image
@@ -532,8 +532,8 @@ def detect_objects(input_bev_maps, model, configs):
 ````
 
 ###### Output Sample
-![](doc/figures/S3_E2_sample1.png)
-![](doc/figures/S3_E2_sample2.png)
+![](doc/figures/P1/S3_E2_sample1.png)
+![](doc/figures/P1/S3_E2_sample2.png)
 
 #### Section 4 : Performance Evaluation for Object Detection
 ##### S4_Ex.1 : Compute intersection-over-union between labels and detections (ID_S4_EX1)
@@ -759,11 +759,11 @@ def compute_performance_stats(det_performance_all):
 ````
 
 ###### Output Sample
-![](doc/figures/S4_E2_part1.png)
+![](doc/figures/P1/S4_E2_part1.png)
 
 To make sure that the code produces plausible results, the flag ``configs_det.use_labels_as_objects`` should be set to True in a second run. The precision and recall when using the labeled objects as the detections the precision and recall should be equal to 1.0 and errors equal to 0.0
 
-![](doc/figures/S4_E2_part2.png)
+![](doc/figures/P1/S4_E2_part2.png)
 
 
 ### 2. Do you see any benefits in camera-lidar fusion compared to lidar-only tracking (in theory and in your concrete results)? 

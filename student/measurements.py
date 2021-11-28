@@ -44,15 +44,21 @@ class Sensor:
     def in_fov(self, x):
         # check if an object x can be seen by this sensor
         ############
-        # TODO Step 4: implement a function that returns True if x lies in the sensor's field of view, 
+        # Step 4: implement a function that returns True if x lies in the sensor's field of view, 
         # otherwise False.
         ############
-
-        return True
+        pos_veh = np.asmatrix(np.ones((4, 1)))
+        pos_veh[0:3] = x[0:3]
         
-        ############
-        # END student code
-        ############ 
+        pos_cam = self.veh_to_sens * pos_veh
+        
+        px, py, _, _ = pos_cam
+        alpha = np.arctan(py, px)
+        
+        if alpha > self.fov[0] and alpha < self.fov[1]:
+            return True
+        
+        return False
              
     def get_hx(self, x):    
         # calculate nonlinear measurement expectation value h(x)   

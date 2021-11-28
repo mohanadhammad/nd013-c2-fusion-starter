@@ -31,9 +31,9 @@ class Association:
         self.unassigned_meas = []
         
     def associate(self, track_list, meas_list, KF):
-             
+
         ############
-        # TODO Step 3: association:
+        # Step 3: association:
         # - replace association_matrix with the actual association matrix based on Mahalanobis distance (see below) for all tracks and all measurements
         # - update list of unassigned measurements and unassigned tracks
         ############
@@ -59,10 +59,11 @@ class Association:
                 dist = self.MHD(track, meas, KF)
                 if self.gating(dist, meas.sensor):
                     self.association_matrix[n, m] = dist
-                
+
     def get_closest_track_and_meas(self):
+
         ############
-        # TODO Step 3: find closest track and measurement:
+        # Step 3: find closest track and measurement:
         # - find minimum entry in association matrix
         # - delete row and column
         # - remove corresponding track and measurement from unassigned_tracks and unassigned_meas
@@ -77,7 +78,7 @@ class Association:
         
         idx_track, idx_meas = np.unravel_index(np.argmin(A, axis=None), A.shape)
         
-        if A[idx_track, idx_meas] != np.inf:
+        if A[idx_track, idx_meas] is not np.inf:
             A = np.delete(A, idx_track, 0)
             A = np.delete(A, idx_meas, 1)
             self.association_matrix = A
@@ -114,6 +115,7 @@ class Association:
         S = H * track.P * H.T + meas.R
         
         mahalo_dist = g.T * S.I * g
+        
         return mahalo_dist
 
     def associate_and_update(self, manager, meas_list, KF):
