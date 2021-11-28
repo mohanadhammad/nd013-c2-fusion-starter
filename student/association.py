@@ -108,7 +108,9 @@ class Association:
         # Step 3: calculate and return Mahalanobis distance
         ############
         
-        g = meas.z - meas.sensor.get_hx( track.x )
+        z = np.asmatrix(meas.z)
+        
+        g = z - meas.sensor.get_hx( track.x )
         H = meas.sensor.get_H( track.x )
         S = H * track.P * H.T + meas.R
         

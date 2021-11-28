@@ -32,13 +32,11 @@ class Filter:
         ############
         # Step 1: implement and return system matrix F
         ############
-        k = self.dim_state // 2
-        
         F = np.identity((self.dim_state))
         F = np.asmatrix(F) # convert from array to matrix instance
-        F[0, k  ] = self.dt
-        F[1, k+1] = self.dt
-        F[2, k+2] = self.dt
+        F[0, 3] = self.dt
+        F[1, 4] = self.dt
+        F[2, 5] = self.dt
 
         return F
 

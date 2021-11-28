@@ -119,16 +119,17 @@ class Trackmanagement:
 
         # delete old tracks
         for track in self.track_list:
+           
             # holds only for confirmed tracks
-            threshold = -1
+            delete_threshold = -1
             if track.state == 'confirmed':
-                threshold = params.delete_threshold_confirmed
-            elif track.state == 'tentative':
-                threshold = params.delete_threshold_tentative
+                delete_threshold = params.delete_threshold_confirmed
+            elif track.state == 'tentative' or track.state == 'initialized':
+                delete_threshold = params.delete_threshold_tentative
 
-            if track.score <= threshold and (track.P[0,0] >= params.max_P or track.P[1,1] >= params.max_P):
+            if track.score <= delete_threshold and (track.P[0,0] >= params.max_P or track.P[1,1] >= params.max_P):
                 self.delete_track(track)
-               
+                
         # initialize new track with unassigned measurement
         for j in unassigned_meas: 
             if meas_list[j].sensor.name == 'lidar': # only initialize with lidar measurements
