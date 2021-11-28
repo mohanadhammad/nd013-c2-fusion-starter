@@ -19,6 +19,7 @@ q=3 # process noise variable for Kalman filter Q
 
 # track management parameters (Step 2)
 confirmed_threshold = 0.8 # track score threshold to switch from 'tentative' to 'confirmed'
+tentative_threshold = 0.2 # track score threshold to switch from 'initialized' to 'tentative'
 delete_threshold_confirmed = 0.6  # track score threshold to delete confirmed tracks
 delete_threshold_tentative = 0.17 # track score threshold to delete tentative tracks
 window = 6 # number of frames for track score calculation
