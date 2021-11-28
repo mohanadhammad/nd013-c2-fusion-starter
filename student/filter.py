@@ -24,69 +24,89 @@ import misc.params as params
 class Filter:
     '''Kalman filter class'''
     def __init__(self):
-        pass
+        self.dim_state = params.dim_state # process model dimension
+        self.dt = params.dt # sample time
+        self.q = params.q # process noise value for Q covariance
 
     def F(self):
         ############
-        # TODO Step 1: implement and return system matrix F
+        # Step 1: implement and return system matrix F
         ############
-
-        return 0
+        k = self.dim_state // 2
         
-        ############
-        # END student code
-        ############ 
+        F = np.identity((self.dim_state))
+        F = np.asmatrix(F) # convert from array to matrix instance
+        F[0, k  ] = self.dt
+        F[1, k+1] = self.dt
+        F[2, k+2] = self.dt
+
+        return F
 
     def Q(self):
         ############
-        # TODO Step 1: implement and return process noise covariance Q
+        # Step 1: implement and return process noise covariance Q
         ############
 
-        return 0
+        dt2 = self.dt ** 2
+        dt3 = self.dt * dt2
         
-        ############
-        # END student code
-        ############ 
+        q_11 = dt3 * self.q / 3.0
+        q_13 = dt2 * self.q / 2.0
+        q_33 = self.dt * self.q
+
+        return np.matrix([[q_11,  0.0,  0.0, q_13,  0.0,  0.0],
+                         [ 0.0, q_11,  0.0,  0.0, q_13,  0.0],
+                         [ 0.0,  0.0, q_11,  0.0,  0.0, q_13],
+                         [q_13,  0.0,  0.0, q_33,  0.0,  0.0],
+                         [ 0.0, q_13,  0.0,  0.0, q_33,  0.0],
+                         [ 0.0,  0.0, q_13,  0.0,  0.0, q_33]])
 
     def predict(self, track):
         ############
-        # TODO Step 1: predict state x and estimation error covariance P to next timestep, save x and P in track
+        # Step 1: predict state x and estimation error covariance P to next timestep, save x and P in track
         ############
 
-        pass
+        x_ = self.F() * track.x
+        P_ = self.F() * track.P * self.F().T + self.Q()
         
-        ############
-        # END student code
-        ############ 
+        track.set_x(x_)
+        track.set_P(P_)
 
     def update(self, track, meas):
         ############
-        # TODO Step 1: update state x and covariance P with associated measurement, save x and P in track
+        # Step 1: update state x and covariance P with associated measurement, save x and P in track
         ############
         
-        ############
-        # END student code
-        ############ 
+        gamma = self.gamma(track, meas)                 # residual vector
+        
+        H = meas.sensor.get_H( track.x )
+        S = self.S(track, meas, H)                      # residual covariance
+        
+        I = np.asmatrix(np.zeros((self.dim_state)))     # identity matrix
+        
+        K = track.P * H.T * S.I                       # Kalman gain
+        x = track.x + K * gamma                       # state update
+        P = (I - K*H) * track.P                         # covariance update
+        
+        track.set_x(x)                                  # track state assignment
+        track.set_P(P)                                  # track covariance assignment
+        
         track.update_attributes(meas)
     
     def gamma(self, track, meas):
         ############
-        # TODO Step 1: calculate and return residual gamma
+        # Step 1: calculate and return residual gamma
         ############
 
-        return 0
-        
-        ############
-        # END student code
-        ############ 
+        z_ = meas.z # actual measurement
+        hx = meas.sensor.get_hx( track.x ) # nonlinear measurement model for camera and linear model for lidar
+      
+        return (z_ - hx) # innovation/residual
 
     def S(self, track, meas, H):
         ############
-        # TODO Step 1: calculate and return covariance of residual S
+        # Step 1: calculate and return covariance of residual S
         ############
-
-        return 0
         
-        ############
-        # END student code
-        ############ 
+        return (H * track.P * H.T) + meas.R
+    
