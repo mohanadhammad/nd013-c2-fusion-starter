@@ -95,11 +95,8 @@ class Filter:
         ############
         # Step 1: calculate and return residual gamma
         ############
-
-        z_ = meas.z # actual measurement
-        hx = meas.sensor.get_hx( track.x ) # nonlinear measurement model for camera and linear model for lidar
-      
-        return (z_ - hx) # innovation/residual
+        
+        return (meas.z - meas.sensor.get_hx( track.x )) # innovation/residual
 
     def S(self, track, meas, H):
         ############

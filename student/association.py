@@ -107,14 +107,13 @@ class Association:
         ############
         # Step 3: calculate and return Mahalanobis distance
         ############
-        
-        z = np.asmatrix(meas.z)
-        
-        g = z - meas.sensor.get_hx( track.x )
+               
         H = meas.sensor.get_H( track.x )
-        S = H * track.P * H.T + meas.R
         
-        mahalo_dist = g.T * S.I * g
+        g = KF.gamma(track, meas)
+        S = KF.S(track, meas, H)
+        
+        mahalo_dist = np.transpose(g) * np.linalg.inv(S) * g
         
         return mahalo_dist
 
