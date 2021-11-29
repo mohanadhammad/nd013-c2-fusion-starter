@@ -766,11 +766,606 @@ To make sure that the code produces plausible results, the flag ``configs_det.us
 ![](doc/figures/P1/S4_E2_part2.png)
 
 
-### 2. Do you see any benefits in camera-lidar fusion compared to lidar-only tracking (in theory and in your concrete results)? 
+### Multi-target Tracking and Sensor Fusion
+
+#### S1: Kalman filter Tracking
+
+##### Overview
+1. EKF is implemented including appropriate system matrix F and process noise Q for constant velocity motion model.
+2. EKF is applied to a simple single-target scenario with lidar only.
+3. The mean RMSE is 0.35 or smaller.
+
+### Results
+
+![BEV_LiDAR](doc/figures/P2/Figure_1_lidar.png)
+![RMSE_LiDAR](doc/figures/P2/Figure_2_lidar.png)
 
 
-### 3. Which challenges will a sensor fusion system face in real-life scenarios? Did you see any of these challenges in the project?
+#### Code Implementation
 
+````python
+class Filter:
+    '''Kalman filter class'''
+    def __init__(self):
+        self.dim_state = params.dim_state # process model dimension
+        self.dt = params.dt # sample time
+        self.q = params.q # process noise value for Q covariance
 
-### 4. Can you think of ways to improve your tracking results in the future?
+    def F(self):
+        ############
+        # Step 1: implement and return system matrix F
+        ############
+        F = np.eye((self.dim_state))
+        F = np.asmatrix(F) # convert from array to matrix instance
+        F[0, 3] = self.dt
+        F[1, 4] = self.dt
+        F[2, 5] = self.dt
+        return F
 
+    def Q(self):
+        ############
+        # Step 1: implement and return process noise covariance Q
+        ############
+
+        dt2 = self.dt ** 2
+        dt3 = self.dt * dt2
+        
+        q_11 = dt3 * self.q / 3.0
+        q_13 = dt2 * self.q / 2.0
+        q_33 = self.dt * self.q
+
+        return np.matrix([[q_11,  0.0,  0.0, q_13,  0.0,  0.0],
+                         [ 0.0, q_11,  0.0,  0.0, q_13,  0.0],
+                         [ 0.0,  0.0, q_11,  0.0,  0.0, q_13],
+                         [q_13,  0.0,  0.0, q_33,  0.0,  0.0],
+                         [ 0.0, q_13,  0.0,  0.0, q_33,  0.0],
+                         [ 0.0,  0.0, q_13,  0.0,  0.0, q_33]])
+
+    def predict(self, track):
+        ############
+        # Step 1: predict state x and estimation error covariance P to next timestep, save x and P in track
+        ############
+
+        x_ = self.F() * track.x
+        P_ = self.F() * track.P * self.F().T + self.Q()
+        
+        track.set_x(x_)
+        track.set_P(P_)
+
+    def update(self, track, meas):
+        ############
+        # Step 1: update state x and covariance P with associated measurement, save x and P in track
+        ############
+        
+        H = meas.sensor.get_H( track.x )                # measurement jacobina matrix
+        
+        gamma = self.gamma(track, meas)                 # residual vector
+        S = self.S(track, meas, H)                      # residual covariance
+        
+        I = np.asmatrix(np.eye((self.dim_state)))       # identity matrix
+        
+        K = track.P * H.T * S.I                         # Kalman gain
+        x = track.x + K * gamma                         # state update
+        P = (I - K*H) * track.P                         # covariance update
+        
+        track.set_x(x)                                  # track state assignment
+        track.set_P(P)                                  # track covariance assignment
+        
+        track.update_attributes(meas)
+    
+    def gamma(self, track, meas):
+        ############
+        # Step 1: calculate and return residual gamma
+        ############
+        
+        return (meas.z - meas.sensor.get_hx( track.x )) # innovation/residual
+
+    def S(self, track, meas, H):
+        ############
+        # Step 1: calculate and return covariance of residual S
+        ############
+        
+        return (H * track.P * H.T) + meas.R
+````
+
+#### S2: Track Management
+
+##### Overview
+1. Track initialization from unassigned measurements is implemented.
+2. A track score is defined and implemented.
+3. Track states are defined and implemented, e.g. “tentative”, “confirmed”.
+4. Old tracks are deleted for not updated tracks.
+5. The tracking works properly if after applying the track management to a new sequence (see instructions), the visualization shows that a new track is initialized automatically where unassigned measurements occur, the true track is confirmed quickly, and the track is deleted after it has vanished from the visible range. There is one single track without track losses in between. Please upload the RMSE plot as png or pdf file.
+
+#### Code Implementation
+
+Single Track Class
+````python
+class Track:
+    '''Track class with state, covariance, id, score'''
+    def __init__(self, meas, id):
+        print('creating track no.', id)
+        M_rot = meas.sensor.sens_to_veh[0:3, 0:3] # rotation matrix from sensor to vehicle coordinates
+        
+        ############
+        # Step 2: initialization:
+        # - replace fixed track initialization values by initialization of x and P based on 
+        # unassigned measurement transformed from sensor to vehicle coordinates
+        # - initialize track state and track score with appropriate values
+        ############
+        
+        self.x = np.asmatrix(np.zeros((6,1)))
+        self.P = np.asmatrix(np.zeros((6,6)))
+        
+        # transform 3D measurement vector to homogenous coordinate
+        pos_sens = np.asmatrix(np.ones((4, 1)))
+        pos_sens[0:3] = meas.z
+
+        # extract homogenous transformation matrix
+        pos_veh = meas.sensor.sens_to_veh * pos_sens
+        self.x[0:3] = pos_veh[0:3]
+        
+        P_pos = M_rot * meas.R * M_rot.T    # position state covariance
+        
+        P_vel = np.asmatrix(np.eye((3)))                 # velocity state covariance
+        P_vel[0, 0] = params.sigma_p44**2
+        P_vel[1, 1] = params.sigma_p55**2
+        P_vel[2, 2] = params.sigma_p66**2
+        
+        self.P[0:3, 0:3] = P_pos
+        self.P[3:6, 3:6] = P_vel
+        
+        self.state = 'initialized'
+        self.score = 1.0 / params.window
+                     
+        # other track attributes
+        self.id = id
+        self.width = meas.width
+        self.length = meas.length
+        self.height = meas.height
+        self.yaw =  np.arccos(M_rot[0,0]*np.cos(meas.yaw) + M_rot[0,1]*np.sin(meas.yaw)) # transform rotation from sensor to vehicle coordinates
+        self.t = meas.t
+
+    def set_x(self, x):
+        self.x = x
+        
+    def set_P(self, P):
+        self.P = P  
+        
+    def set_t(self, t):
+        self.t = t  
+        
+    def update_attributes(self, meas):
+        # use exponential sliding average to estimate dimensions and orientation
+        if meas.sensor.name == 'lidar':
+            c = params.weight_dim
+            self.width = c*meas.width + (1 - c)*self.width
+            self.length = c*meas.length + (1 - c)*self.length
+            self.height = c*meas.height + (1 - c)*self.height
+            M_rot = meas.sensor.sens_to_veh
+            self.yaw = np.arccos(M_rot[0,0]*np.cos(meas.yaw) + M_rot[0,1]*np.sin(meas.yaw)) # transform rotation from sensor to vehicle coordinates
+  
+````
+
+Track Managment Class
+
+````python
+class Trackmanagement:
+    '''Track manager with logic for initializing and deleting objects'''
+    def __init__(self):
+        self.N = 0 # current number of tracks
+        self.track_list = []
+        self.last_id = -1
+        self.result_list = []
+        
+    def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list):  
+        ############
+        # Step 2: implement track management:
+        # - decrease the track score for unassigned tracks
+        # - delete tracks if the score is too low or P is too big (check params.py for parameters that might be helpful, but
+        # feel free to define your own parameters)
+        ############
+        
+        # decrease score for unassigned tracks
+        for i in unassigned_tracks:
+            track = self.track_list[i]
+            # check visibility    
+            if meas_list: # if not empty
+                if meas_list[0].sensor.in_fov(track.x):
+                    # your code goes here
+                    track.score -= (1.0 / params.window)
+                    
+                    if track.score < 0:
+                        track.score = 0.0
+
+        # delete old tracks
+        for track in self.track_list:
+           
+            # holds only for confirmed tracks
+            delete_threshold = -1
+            if track.state == 'confirmed':
+                delete_threshold = params.delete_threshold_confirmed
+            elif track.state == 'tentative' or track.state == 'initialized':
+                delete_threshold = params.delete_threshold_tentative
+
+            if track.score <= delete_threshold and (track.P[0,0] >= params.max_P or track.P[1,1] >= params.max_P):
+                self.delete_track(track)
+                
+        # initialize new track with unassigned measurement
+        for j in unassigned_meas: 
+            if meas_list[j].sensor.name == 'lidar': # only initialize with lidar measurements
+                self.init_track(meas_list[j])
+            
+    def addTrackToList(self, track):
+        self.track_list.append(track)
+        self.N += 1
+        self.last_id = track.id
+
+    def init_track(self, meas):
+        track = Track(meas, self.last_id + 1)
+        self.addTrackToList(track)
+
+    def delete_track(self, track):
+        print('deleting track no.', track.id)
+        self.track_list.remove(track)
+        
+    def handle_updated_track(self, track):      
+        ############
+        # Step 2: implement track management for updated tracks:
+        # - increase track score
+        # - set track state to 'tentative' or 'confirmed'
+        ############
+
+        track.score += (1.0 / params.window)
+        
+        if track.score > 1.0:
+            track.score = 1.0
+        
+        if (track.state == 'tentative' and track.score >= params.confirmed_threshold):
+            track.state = 'confirmed'
+        elif (track.state == 'initialized' and track.score >= params.tentative_threshold):
+            track.state = 'tentative'
+````
+
+#### S3: Data Association
+
+##### Overview
+1. Nearest neighbor data association including association matrix is implemented.
+2. A method that returns nearest track and measurement for association is implemented.
+3. Gating method with chi-square-distribution is implemented to reduce complexity.
+4. The association works properly if you see the following results: After applying the data association to a new sequence with multiple targets, multiple tracks are updated with multiple measurements. The console output shows that each measurement is used at most once and each track is updated at most once.
+5. The visualization should show that there are no confirmed “ghost tracks” that do not exist in reality. There may be initialized or tentative “ghost tracks” as long as they are deleted after several frames. Please upload the RMSE plot as png or pdf file.
+
+#### Code Implementation
+
+````python
+class Association:
+    '''Data association class with single nearest neighbor association and gating based on Mahalanobis distance'''
+    def __init__(self):
+        self.association_matrix = np.matrix([])
+        self.unassigned_tracks = []
+        self.unassigned_meas = []
+        
+    def associate(self, track_list, meas_list, KF):
+
+        ############
+        # Step 3: association:
+        # - replace association_matrix with the actual association matrix based on Mahalanobis distance (see below) for all tracks and all measurements
+        # - update list of unassigned measurements and unassigned tracks
+        ############
+        
+        # the following only works for at most one track and one measurement
+        N = len(track_list)
+        M = len(meas_list)
+        
+        self.association_matrix = np.matrix([]) # reset matrix
+        self.unassigned_tracks = [] # reset lists
+        self.unassigned_meas = []
+        
+        if len(meas_list) > 0:
+            self.unassigned_meas = list(range(M))
+        if len(track_list) > 0:
+            self.unassigned_tracks = list(range(N))
+        if len(meas_list) > 0 and len(track_list) > 0: 
+            self.association_matrix = np.asmatrix(np.inf * np.ones((N,M)))
+        
+        # loop over all tracks and all measurements to set up association matrix                  
+        for n, track in enumerate(track_list):
+            for m, meas in enumerate(meas_list):
+                dist = self.MHD(track, meas, KF)
+                if self.gating(dist, meas.sensor):
+                    self.association_matrix[n, m] = dist
+
+    def get_closest_track_and_meas(self):
+
+		############
+        # Step 3: find closest track and measurement:
+        # - find minimum entry in association matrix
+        # - delete row and column
+        # - remove corresponding track and measurement from unassigned_tracks and unassigned_meas
+        # - return this track and measurement
+        ############
+
+        # find closest track and measurement for next update
+        A = self.association_matrix
+        if np.min(A) == np.inf:
+            return np.nan, np.nan
+
+        # get indices of minimum entry
+        ij_min = np.unravel_index(np.argmin(A, axis=None), A.shape) 
+        ind_track = ij_min[0]
+        ind_meas = ij_min[1]
+
+        # delete row and column for next update
+        A = np.delete(A, ind_track, 0) 
+        A = np.delete(A, ind_meas, 1)
+        self.association_matrix = A
+        
+        # update this track with this measurement
+        update_track = self.unassigned_tracks[ind_track] 
+        update_meas = self.unassigned_meas[ind_meas]
+        
+        # remove this track and measurement from list
+        self.unassigned_tracks.remove(update_track) 
+        self.unassigned_meas.remove(update_meas)
+        
+        return update_track, update_meas
+
+    def gating(self, MHD, sensor): 
+        ############
+        # Step 3: return True if measurement lies inside gate, otherwise False
+        ############
+               
+        if sensor.name == 'lidar':
+            dof = 2 # lidar DOF, features (x, y, z)
+        elif sensor.name == 'camera':
+            dof = 1 # camera DOF, features (x, y)
+               
+        limit = chi2.ppf(params.gating_threshold, df=dof)
+        
+        if MHD < limit:
+            return True
+        else:
+            return False
+        
+    def MHD(self, track, meas, KF):
+        ############
+        # Step 3: calculate and return Mahalanobis distance
+        ############
+               
+        H = meas.sensor.get_H( track.x )
+        
+        g = KF.gamma(track, meas)
+        S = KF.S(track, meas, H)
+        
+        mahalo_dist = np.transpose(g) * np.linalg.inv(S) * g
+        
+        return mahalo_dist
+
+    def associate_and_update(self, manager, meas_list, KF):
+        # associate measurements and tracks
+        self.associate(manager.track_list, meas_list, KF)
+    
+        # update associated tracks with measurements
+        while self.association_matrix.shape[0]>0 and self.association_matrix.shape[1]>0:
+            
+            # search for next association between a track and a measurement
+            ind_track, ind_meas = self.get_closest_track_and_meas()
+            if np.isnan(ind_track):
+                print('---no more associations---')
+                break
+            track = manager.track_list[ind_track]
+            
+            # check visibility, only update tracks in fov    
+            if not meas_list[0].sensor.in_fov(track.x):
+                continue
+            
+            # Kalman update
+            print('update track', track.id, 'with', meas_list[ind_meas].sensor.name, 'measurement', ind_meas)
+            KF.update(track, meas_list[ind_meas])
+            
+            # update score and track state 
+            manager.handle_updated_track(track)
+            
+            # save updated track
+            manager.track_list[ind_track] = track
+            
+        # run track management 
+        manager.manage_tracks(self.unassigned_tracks, self.unassigned_meas, meas_list)
+        
+        for track in manager.track_list:            
+            print('track', track.id, 'score =', track.score)
+````
+
+#### S4: Sensor Fusion
+
+##### Overview
+1. Camera measurements including appropriate covariance matrix R are implemented.
+2. Nonlinear camera measurement model h(x) is implemented. The Jacobian H is given.
+3. A method that checks whether an object can be seen by the camera or is outside the field of view is implemented.
+4. The tracking works properly if you see the following results: The tracking loop now updates all tracks with lidar measurements, then with camera measurements. The console output shows lidar updates followed by camera updates.
+5. The visualization shows that the tracking performs well, again no confirmed ghost tracks or track losses should occur.
+
+#### Code Implementation
+
+Sensor Class
+
+````python
+class Sensor:
+    '''Sensor class including measurement matrix'''
+    def __init__(self, name, calib):
+        self.name = name
+        if name == 'lidar':
+            self.dim_meas = 3
+            self.sens_to_veh = np.matrix(np.identity((4))) # transformation sensor to vehicle coordinates equals identity matrix because lidar detections are already in vehicle coordinates
+            self.fov = [-np.pi/2, np.pi/2] # angle of field of view in radians
+        
+        elif name == 'camera':
+            self.dim_meas = 2
+            self.sens_to_veh = np.matrix(calib.extrinsic.transform).reshape(4,4) # transformation sensor to vehicle coordinates
+            self.f_i = calib.intrinsic[0] # focal length i-coordinate
+            self.f_j = calib.intrinsic[1] # focal length j-coordinate
+            self.c_i = calib.intrinsic[2] # principal point i-coordinate
+            self.c_j = calib.intrinsic[3] # principal point j-coordinate
+            self.fov = [-0.35, 0.35] # angle of field of view in radians, inaccurate boundary region was removed
+            
+        self.veh_to_sens = np.linalg.inv(self.sens_to_veh) # transformation vehicle to sensor coordinates
+    
+    def in_fov(self, x):
+        # check if an object x can be seen by this sensor
+        ############
+        # Step 4: implement a function that returns True if x lies in the sensor's field of view, 
+        # otherwise False.
+        ############
+        pos_veh = np.asmatrix(np.ones((4, 1)))
+        pos_veh[0:3] = x[0:3]
+        
+        pos_sens = self.veh_to_sens * pos_veh # convert position from vehicle to sensor coordinates
+        px, py, _, _ = pos_sens
+        
+        alpha = np.arctan2(py, px)
+        if alpha > self.fov[0] and alpha < self.fov[1]:
+            return True
+        
+        return False
+             
+    def get_hx(self, x):    
+        # calculate nonlinear measurement expectation value h(x)   
+        if self.name == 'lidar':
+            pos_veh = np.ones((4, 1)) # homogeneous coordinates
+            pos_veh[0:3] = x[0:3] 
+            pos_sens = self.veh_to_sens*pos_veh # transform from vehicle to lidar coordinates
+            return pos_sens[0:3]
+        elif self.name == 'camera':
+            
+            ############
+            # Step 4: implement nonlinear camera measurement function h:
+            # - transform position estimate from vehicle to camera coordinates
+            # - project from camera to image coordinates
+            # - make sure to not divide by zero, raise an error if needed
+            # - return h(x)
+            ############
+            
+            p_veh = np.ones((4, 1))
+            p_veh[0:3] = x[0:3]
+            
+            p_sens = self.veh_to_sens * p_veh # transform object position from vehicle to sensor coordinates
+            p_x, p_y, p_z = p_sens[0:3]
+
+            epsilon = 0.000001
+            if abs(p_sens[0]) > epsilon:
+                p_cam = np.asmatrix(np.zeros((2, 1)))
+                p_cam[0] = self.c_i - (self.f_i * p_y / p_x)
+                p_cam[1] = self.c_j - (self.f_j * p_z / p_x)
+                return p_cam
+            else:
+                raise NameError('Warning ... p_cam[0]=0!')
+                
+        
+    def get_H(self, x):
+        # calculate Jacobian H at current x from h(x)
+        H = np.matrix(np.zeros((self.dim_meas, params.dim_state)))
+        R = self.veh_to_sens[0:3, 0:3] # rotation
+        T = self.veh_to_sens[0:3, 3] # translation
+        if self.name == 'lidar':
+            H[0:3, 0:3] = R
+        elif self.name == 'camera':
+            # check and print error message if dividing by zero
+            if R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0] == 0: 
+                raise NameError('Jacobian not defined for this x!')
+            else:
+                H[0,0] = self.f_i * (-R[1,0] / (R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])
+                                    + R[0,0] * (R[1,0]*x[0] + R[1,1]*x[1] + R[1,2]*x[2] + T[1]) \
+                                        / ((R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])**2))
+                H[1,0] = self.f_j * (-R[2,0] / (R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])
+                                    + R[0,0] * (R[2,0]*x[0] + R[2,1]*x[1] + R[2,2]*x[2] + T[2]) \
+                                        / ((R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])**2))
+                H[0,1] = self.f_i * (-R[1,1] / (R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])
+                                    + R[0,1] * (R[1,0]*x[0] + R[1,1]*x[1] + R[1,2]*x[2] + T[1]) \
+                                        / ((R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])**2))
+                H[1,1] = self.f_j * (-R[2,1] / (R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])
+                                    + R[0,1] * (R[2,0]*x[0] + R[2,1]*x[1] + R[2,2]*x[2] + T[2]) \
+                                        / ((R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])**2))
+                H[0,2] = self.f_i * (-R[1,2] / (R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])
+                                    + R[0,2] * (R[1,0]*x[0] + R[1,1]*x[1] + R[1,2]*x[2] + T[1]) \
+                                        / ((R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])**2))
+                H[1,2] = self.f_j * (-R[2,2] / (R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])
+                                    + R[0,2] * (R[2,0]*x[0] + R[2,1]*x[1] + R[2,2]*x[2] + T[2]) \
+                                        / ((R[0,0]*x[0] + R[0,1]*x[1] + R[0,2]*x[2] + T[0])**2))
+        return H   
+        
+    def generate_measurement(self, num_frame, z, meas_list):
+        # generate new measurement from this sensor and add to measurement list
+        ############
+        # Step 4: remove restriction to lidar in order to include camera as well
+        ############
+        
+        # if True:
+        if self.name == 'lidar':
+            meas = Measurement(num_frame, z, self)
+            meas_list.append(meas)
+        return meas_list      
+````
+
+Measurement Class
+
+````python
+class Measurement:
+    '''Measurement class including measurement values, covariance, timestamp, sensor'''
+    def __init__(self, num_frame, z, sensor):
+        # create measurement object
+        self.t = (num_frame - 1) * params.dt # time
+        self.sensor = sensor # sensor that generated this measurement
+        
+        if sensor.name == 'lidar':
+            sigma_lidar_x = params.sigma_lidar_x # load params
+            sigma_lidar_y = params.sigma_lidar_y
+            sigma_lidar_z = params.sigma_lidar_z
+            self.z = np.zeros((sensor.dim_meas,1)) # measurement vector
+            self.z[0] = z[0]
+            self.z[1] = z[1]
+            self.z[2] = z[2]
+            self.R = np.matrix([[sigma_lidar_x**2, 0, 0], # measurement noise covariance matrix
+                                [0, sigma_lidar_y**2, 0], 
+                                [0, 0, sigma_lidar_z**2]])
+            
+            self.width = z[4]
+            self.length = z[5]
+            self.height = z[3]
+            self.yaw = z[6]
+        elif sensor.name == 'camera':
+            
+            ############
+            # Step 4: initialize camera measurement including z and R 
+            ############           
+            self.z = np.asmatrix(np.zeros((sensor.dim_meas, 1))) # measurement vector            
+            self.z[0] = z[0]
+            self.z[1] = z[1]
+
+            # measurement noise covariance matrix
+            sigma_cam_i = params.sigma_cam_i;
+            sigma_cam_j = params.sigma_cam_j;
+            
+            self.R = np.matrix([[sigma_cam_i**2,            0.0],
+                                [           0.0, sigma_cam_j**2]])
+
+````
+
+#### Results
+
+[!video)](doc/figures/P2/my_tracking_results.avi)
+
+#### S5: Evaluation
+
+##### Overview
+1. Overall tracking performance is evaluated using RMSE metric. RMSE plot shows at least three confirmed tracks. Two of the tracks are tracked from beginning to end of the sequence (0s - 200s) without track loss. The mean RMSE for these two tracks is below 0.25.
+
+#### Results
+![rmse_fusion](doc/figures/P2/Figure_2_fusion.png)
+![rmse_fusion](doc/figures/P2/Figure_1_fusion.png)
+
+##### Conclusion
+
+1. The results from the fusion based tracking shows less RMSE compared to tracking with LiDAR only. As well as, discarding clutters at early stage even before switching state to 'tentative' which is an advantage of the fusion with camera measurements.
+2. Challenges facing sensor fusion in real-scenarios could be the algorithmic performance and memory consumption which decides if the algorithm is suitable for real-time processing or not. There are already efforts from different companies and technical institutes to optimize the tracking algorithms to achieve an real-time embeddable solution. Aditional challenge is the requirement to detect and track the objects as soon as possible with minimum delay in safety relevant maneuvers like emergency braking and on the same time false positives needs to be discarded as soon as possible to avoid false braking which could lead also to accedents.
+3. The tracking results can be improved by implementing joint-probabilistic data association tracker with is more accurate in tracking multiple targets simultaneously. The Nearest neighbor (NN) association as the one implemented in this solution has a hard decision to use the “closest” measurement. While Probabilistic data association (PDA) has soft decision where all measurements in the gate are combined.
