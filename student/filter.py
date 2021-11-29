@@ -32,19 +32,11 @@ class Filter:
         ############
         # Step 1: implement and return system matrix F
         ############
-        # F = np.identity((self.dim_state))
-        # F = np.asmatrix(F) # convert from array to matrix instance
-        # F[0, 3] = self.dt
-        # F[1, 4] = self.dt
-        # F[2, 5] = self.dt
-        
-        dt = params.dt
-        F = np.matrix([[1,0,0,dt,0,0],
-                       [0,1,0,0,dt,0],
-                       [0,0,1,0,0,dt],
-                       [0,0,0,1,0,0],
-                       [0,0,0,0,1,0],
-                       [0,0,0,0,0,1]])
+        F = np.eye((self.dim_state))
+        F = np.asmatrix(F) # convert from array to matrix instance
+        F[0, 3] = self.dt
+        F[1, 4] = self.dt
+        F[2, 5] = self.dt
         return F
 
     def Q(self):
@@ -82,12 +74,12 @@ class Filter:
         # Step 1: update state x and covariance P with associated measurement, save x and P in track
         ############
         
-        gamma = self.gamma(track, meas)                 # residual vector
+        H = meas.sensor.get_H( track.x )                # measurement jacobina matrix
         
-        H = meas.sensor.get_H( track.x )
+        gamma = self.gamma(track, meas)                 # residual vector
         S = self.S(track, meas, H)                      # residual covariance
         
-        I = np.asmatrix(np.zeros((self.dim_state)))     # identity matrix
+        I = np.asmatrix(np.eye((self.dim_state)))       # identity matrix
         
         K = track.P * H.T * S.I                         # Kalman gain
         x = track.x + K * gamma                         # state update
