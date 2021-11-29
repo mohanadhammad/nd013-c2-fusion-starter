@@ -100,8 +100,17 @@ class Association:
         # Step 3: return True if measurement lies inside gate, otherwise False
         ############
                
-        MHD_threshold = chi2.ppf(params.gating_threshold, df=sensor.dim_meas)
-        return (MHD <= MHD_threshold)
+        if sensor.name == 'lidar':
+            dof = 2 # lidar DOF, features (x, y, z)
+        elif sensor.name == 'camera':
+            dof = 1 # camera DOF, features (x, y)
+               
+        limit = chi2.ppf(params.gating_threshold, df=dof)
+        
+        if MHD < limit:
+            return True
+        else:
+            return False
         
     def MHD(self, track, meas, KF):
         ############
