@@ -1115,13 +1115,8 @@ class Association:
         ############
         # Step 3: return True if measurement lies inside gate, otherwise False
         ############
-               
-        if sensor.name == 'lidar':
-            dof = 2 # lidar DOF, features (x, y, z)
-        elif sensor.name == 'camera':
-            dof = 1 # camera DOF, features (x, y)
-               
-        limit = chi2.ppf(params.gating_threshold, df=dof)
+              
+        limit = chi2.ppf(params.gating_threshold, df=sensor.dim_meas)
         
         if MHD < limit:
             return True
@@ -1361,8 +1356,13 @@ class Measurement:
 1. Overall tracking performance is evaluated using RMSE metric. RMSE plot shows at least three confirmed tracks. Two of the tracks are tracked from beginning to end of the sequence (0s - 200s) without track loss. The mean RMSE for these two tracks is below 0.25.
 
 #### Results
+
+##### RMSE of the LiDAR only Tracking Approach
+![rmse_fusion](doc/figures/P2/Figure_2_lidar.png)
+
+##### RMSE of the Fusion Tracking Approach
+
 ![rmse_fusion](doc/figures/P2/Figure_2_fusion.png)
-![rmse_fusion](doc/figures/P2/Figure_1_fusion.png)
 
 ##### Conclusion
 
