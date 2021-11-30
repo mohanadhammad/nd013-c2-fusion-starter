@@ -117,17 +117,15 @@ class Trackmanagement:
                     if track.score < 0:
                         track.score = 0.0
 
-        # delete old tracks
+        # delete old tracks   
         for track in self.track_list:
-           
-            # holds only for confirmed tracks
-            delete_threshold = -1
-            if track.state == 'confirmed':
-                delete_threshold = params.delete_threshold_confirmed
-            elif track.state == 'tentative' or track.state == 'initialized':
-                delete_threshold = params.delete_threshold_tentative
-
-            if track.score <= delete_threshold and (track.P[0,0] >= params.max_P or track.P[1,1] >= params.max_P):
+            x_pred_variance = track.P[0,0]
+            y_pred_variance = track.P[1,1]
+            print('x_pred_variance', x_pred_variance)
+            print('y_pred_variance', y_pred_variance)
+            if  (track.score <= params.delete_threshold_confirmed and track.state == 'confirmed') or \
+                (track.score <= params.delete_threshold_tentative and (track.state == 'tentative' or track.state == 'tentative')) or \
+                (x_pred_variance>params.max_P or y_pred_variance>params.max_P):
                 self.delete_track(track)
                 
         # initialize new track with unassigned measurement
@@ -156,9 +154,8 @@ class Trackmanagement:
         ############
 
         track.score += (1.0 / params.window)
-        
         if track.score > 1.0:
-            track.score = 1.0
+            track.score = 1.0           
         
         if (track.state == 'tentative' and track.score >= params.confirmed_threshold):
             track.state = 'confirmed'

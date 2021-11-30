@@ -102,7 +102,7 @@ class Association:
               
         limit = chi2.ppf(params.gating_threshold, df=sensor.dim_meas)
         
-        if MHD < limit:
+        if MHD <= limit:
             return True
         else:
             return False
