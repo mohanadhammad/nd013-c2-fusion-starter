@@ -123,13 +123,13 @@ display_pcl = False
 ### Multi-target Tracking
 #### Section 4 : Performance Evaluation for Object Detection
 ##### S1_Ex1 : Extended Kalman filter
-# data_filename = 'training_segment-10072231702153043603_5725_000_5745_000_with_camera_labels.tfrecord' # Sequence 1
-# exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
-# exec_tracking = ['perform_tracking'] # options are 'perform_tracking' 
-# exec_visualization = ['show_tracks'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
-# show_only_frames = [150, 200]
-# configs_det = det.load_configs(model_name='fpn_resnet') # options are 'darknet', 'fpn_resnet'
-# configs_det.lim_y = [-5, 10]
+data_filename = 'training_segment-10072231702153043603_5725_000_5745_000_with_camera_labels.tfrecord' # Sequence 1
+exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+exec_tracking = ['perform_tracking'] # options are 'perform_tracking' 
+exec_visualization = ['show_tracks'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+show_only_frames = [150, 200]
+configs_det = det.load_configs(model_name='fpn_resnet') # options are 'darknet', 'fpn_resnet'
+configs_det.lim_y = [-5, 10]
 
 ##### S2_Ex1 : Track Managment
 # data_filename = 'training_segment-10072231702153043603_5725_000_5745_000_with_camera_labels.tfrecord'
@@ -142,13 +142,13 @@ display_pcl = False
 
 ##### S3_Ex1 : Association
 ##### S4_Ex1 : Measurements
-data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord'
-exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
-exec_tracking = ['perform_tracking'] # options are 'perform_tracking' 
-exec_visualization = ['show_tracks', 'make_tracking_movie'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
-show_only_frames = [0, 200]
-configs_det = det.load_configs(model_name='fpn_resnet') # options are 'darknet', 'fpn_resnet'
-configs_det.lim_y = [-25, 25]
+# data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord'
+# exec_detection = [] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
+# exec_tracking = ['perform_tracking'] # options are 'perform_tracking' 
+# exec_visualization = ['show_tracks', 'make_tracking_movie'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+# show_only_frames = [0, 200]
+# configs_det = det.load_configs(model_name='fpn_resnet') # options are 'darknet', 'fpn_resnet'
+# configs_det.lim_y = [-25, 25]
 
 # assign execution list
 exec_list = make_exec_list(exec_detection, exec_tracking, exec_visualization)

@@ -62,7 +62,7 @@ class Association:
 
     def get_closest_track_and_meas(self):
 
-		############
+        ############
         # Step 3: find closest track and measurement:
         # - find minimum entry in association matrix
         # - delete row and column
@@ -100,7 +100,12 @@ class Association:
         # Step 3: return True if measurement lies inside gate, otherwise False
         ############
               
-        limit = chi2.ppf(params.gating_threshold, df=sensor.dim_meas)
+        if sensor.name == 'lidar':
+            dof = 2
+        else:
+            dof = 1
+            
+        limit = chi2.ppf(params.gating_threshold, dof)
         
         if MHD <= limit:
             return True
@@ -117,7 +122,7 @@ class Association:
         g = KF.gamma(track, meas)
         S = KF.S(track, meas, H)
         
-        mahalo_dist = np.transpose(g) * np.linalg.inv(S) * g
+        mahalo_dist = np.sqrt(np.transpose(g) * np.linalg.inv(S) * g)
         
         return mahalo_dist
 

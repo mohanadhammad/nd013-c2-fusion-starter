@@ -53,9 +53,10 @@ class Sensor:
         pos_sens = self.veh_to_sens * pos_veh # convert position from vehicle to sensor coordinates
         px, py, _, _ = pos_sens
         
-        alpha = np.arctan2(py, px)
-        if alpha > self.fov[0] and alpha < self.fov[1]:
-            return True
+        if px > 0:
+            alpha = np.arctan2(py, px)
+            if alpha > self.fov[0] and alpha < self.fov[1]:
+                return True
         
         return False
              

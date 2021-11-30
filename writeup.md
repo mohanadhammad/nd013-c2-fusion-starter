@@ -868,6 +868,11 @@ class Filter:
         return (H * track.P * H.T) + meas.R
 ````
 
+##### Results
+
+![s1_view](doc/figures/P2/S1_View.png)
+![s1_rmse](doc/figures/P2/S1_RMSE.png)
+
 #### S2: Track Management
 
 ##### Overview
@@ -970,25 +975,24 @@ class Trackmanagement:
         for i in unassigned_tracks:
             track = self.track_list[i]
             # check visibility    
-            if meas_list: # if not empty
-                if meas_list[0].sensor.in_fov(track.x):
+            if meas_list:
+                if meas_list[0].sensor.in_fov(track.x): # if not empty
                     # your code goes here
                     track.score -= (1.0 / params.window)
-                    
-                    if track.score < 0:
-                        track.score = 0.0
+            else: # reduce score when no measurements are available
+                track.score -= (1.0 / params.window)
+            if track.score < 0:
+                track.score = 0.0
 
-        # delete old tracks
+        # delete old tracks   
         for track in self.track_list:
-           
-            # holds only for confirmed tracks
-            delete_threshold = -1
-            if track.state == 'confirmed':
-                delete_threshold = params.delete_threshold_confirmed
-            elif track.state == 'tentative' or track.state == 'initialized':
-                delete_threshold = params.delete_threshold_tentative
-
-            if track.score <= delete_threshold and (track.P[0,0] >= params.max_P or track.P[1,1] >= params.max_P):
+            x_pred_variance = track.P[0,0]
+            y_pred_variance = track.P[1,1]
+            print('x_pred_variance', x_pred_variance)
+            print('y_pred_variance', y_pred_variance)
+            if  (track.score <= params.delete_threshold_confirmed and track.state == 'confirmed') or \
+                (track.score <= params.delete_threshold_tentative and track.state == 'tentative') or \
+                (x_pred_variance>params.max_P or y_pred_variance>params.max_P):
                 self.delete_track(track)
                 
         # initialize new track with unassigned measurement
@@ -1017,15 +1021,20 @@ class Trackmanagement:
         ############
 
         track.score += (1.0 / params.window)
-        
         if track.score > 1.0:
-            track.score = 1.0
+            track.score = 1.0           
         
         if (track.state == 'tentative' and track.score >= params.confirmed_threshold):
             track.state = 'confirmed'
         elif (track.state == 'initialized' and track.score >= params.tentative_threshold):
             track.state = 'tentative'
+
 ````
+
+##### Results
+
+![s2_view](doc/figures/P2/S2_View.png)
+![s2_rmse](doc/figures/P2/S2_RMSE_2.png)
 
 #### S3: Data Association
 
@@ -1078,7 +1087,7 @@ class Association:
 
     def get_closest_track_and_meas(self):
 
-		############
+        ############
         # Step 3: find closest track and measurement:
         # - find minimum entry in association matrix
         # - delete row and column
@@ -1116,9 +1125,14 @@ class Association:
         # Step 3: return True if measurement lies inside gate, otherwise False
         ############
               
-        limit = chi2.ppf(params.gating_threshold, df=sensor.dim_meas)
+        if sensor.name == 'lidar':
+            dof = 2
+        else:
+            dof = 1
+            
+        limit = chi2.ppf(params.gating_threshold, dof)
         
-        if MHD < limit:
+        if MHD <= limit:
             return True
         else:
             return False
@@ -1133,7 +1147,7 @@ class Association:
         g = KF.gamma(track, meas)
         S = KF.S(track, meas, H)
         
-        mahalo_dist = np.transpose(g) * np.linalg.inv(S) * g
+        mahalo_dist = np.sqrt(np.transpose(g) * np.linalg.inv(S) * g)
         
         return mahalo_dist
 
@@ -1171,6 +1185,11 @@ class Association:
         for track in manager.track_list:            
             print('track', track.id, 'score =', track.score)
 ````
+
+#### Results
+
+##### RMSE of the LiDAR only Tracking Approach
+![rmse_fusion](doc/figures/P2/Figure_2_lidar.png)
 
 #### S4: Sensor Fusion
 
@@ -1356,10 +1375,6 @@ class Measurement:
 1. Overall tracking performance is evaluated using RMSE metric. RMSE plot shows at least three confirmed tracks. Two of the tracks are tracked from beginning to end of the sequence (0s - 200s) without track loss. The mean RMSE for these two tracks is below 0.25.
 
 #### Results
-
-##### RMSE of the LiDAR only Tracking Approach
-![rmse_fusion](doc/figures/P2/Figure_2_lidar.png)
-
 ##### RMSE of the Fusion Tracking Approach
 
 ![rmse_fusion](doc/figures/P2/Figure_2_fusion.png)

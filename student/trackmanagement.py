@@ -109,13 +109,14 @@ class Trackmanagement:
         for i in unassigned_tracks:
             track = self.track_list[i]
             # check visibility    
-            if meas_list: # if not empty
-                if meas_list[0].sensor.in_fov(track.x):
+            if meas_list:
+                if meas_list[0].sensor.in_fov(track.x): # if not empty
                     # your code goes here
                     track.score -= (1.0 / params.window)
-                    
-                    if track.score < 0:
-                        track.score = 0.0
+            else: # reduce score when no measurements are available
+                track.score -= (1.0 / params.window)
+            if track.score < 0:
+                track.score = 0.0
 
         # delete old tracks   
         for track in self.track_list:
@@ -124,7 +125,7 @@ class Trackmanagement:
             print('x_pred_variance', x_pred_variance)
             print('y_pred_variance', y_pred_variance)
             if  (track.score <= params.delete_threshold_confirmed and track.state == 'confirmed') or \
-                (track.score <= params.delete_threshold_tentative and (track.state == 'tentative' or track.state == 'tentative')) or \
+                (track.score <= params.delete_threshold_tentative and track.state == 'tentative') or \
                 (x_pred_variance>params.max_P or y_pred_variance>params.max_P):
                 self.delete_track(track)
                 
